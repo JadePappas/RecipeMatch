@@ -1,6 +1,7 @@
 package com.example.recipematch
 
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -12,6 +13,12 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
 
 class DiscoverFragment : Fragment() {
+    private val tag = "DiscoverFragment"
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        Log.d(tag, "onCreate called")
+    }
 
     // inflate fragment's xml layout
     override fun onCreateView(
@@ -19,11 +26,12 @@ class DiscoverFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
+        Log.d(tag, "onCreateView called")
         val view = inflater.inflate(R.layout.discover_fragment, container, false)
 
-        // Temporary button to navigate back to HomeFragment
+        // temporary button to navigate back to HomeFragment
         view.findViewById<Button>(R.id.back_button).setOnClickListener {
-            // Pop this fragment off the back stack and return to the previous fragment
+            // pop this fragment off the back stack and return to the previous fragment
             parentFragmentManager.popBackStack()
         }
 
