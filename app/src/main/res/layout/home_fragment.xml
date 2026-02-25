@@ -13,4 +13,11 @@
         android:textSize="24sp"
         android:textStyle="bold" />
 
+    <!-- temporary button to go to DiscoverFragment -->
+    <Button
+        android:id="@+id/go_to_discover"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Go to Discover" />
+
 </LinearLayout>
