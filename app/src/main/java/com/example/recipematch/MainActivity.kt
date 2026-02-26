@@ -1,6 +1,7 @@
 package com.example.recipematch
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
@@ -10,6 +11,8 @@ import com.google.android.material.bottomnavigation.BottomNavigationView
 
 class MainActivity : AppCompatActivity() {
 
+    private val tag = "MainActivity"
+
     private val homeFragment = HomeFragment()
     private val pantryFragment = PantryFragment()
     private val discoverFragment = DiscoverFragment()
@@ -17,12 +20,13 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Log.d(tag, "onCreate called")
+
         enableEdgeToEdge()
         setContentView(R.layout.activity_main)
 
         val bottomNavigation = findViewById<BottomNavigationView>(R.id.bottom_navigation)
 
-        // Set default fragment
         if (savedInstanceState == null) {
             supportFragmentManager.beginTransaction().replace(R.id.fragment_container, homeFragment).commit()
         }
@@ -46,5 +50,30 @@ class MainActivity : AppCompatActivity() {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        Log.d(tag, "onStart called")
+    }
+
+    override fun onResume() {
+        super.onResume()
+        Log.d(tag, "onResume called")
+    }
+
+    override fun onPause() {
+        Log.d(tag, "onPause called")
+        super.onPause()
+    }
+
+    override fun onStop() {
+        Log.d(tag, "onStop called")
+        super.onStop()
+    }
+
+    override fun onDestroy() {
+        Log.d(tag, "onDestroy called")
+        super.onDestroy()
     }
 }

@@ -15,7 +15,6 @@ class HomeFragment : Fragment() {
         Log.d(tag, "onCreate called")
     }
 
-    // inflate fragment's xml layout
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -25,5 +24,33 @@ class HomeFragment : Fragment() {
         return inflater.inflate(R.layout.home_fragment, container, false)
     }
 
-    // TODO: Lifecycle logging
+    override fun onStart() {
+        super.onStart()
+        Log.d(tag, "onStart called")
+    }
+
+    override fun onResume() {
+        super.onResume()
+        Log.d(tag, "onResume called")
+    }
+
+    override fun onPause() {
+        Log.d(tag, "onPause called")
+        super.onPause()
+    }
+
+    override fun onStop() {
+        Log.d(tag, "onStop called")
+        super.onStop()
+    }
+
+    override fun onDestroyView() {
+        Log.d(tag, "onDestroyView called")
+        super.onDestroyView()
+    }
+
+    override fun onDestroy() {
+        Log.d(tag, "onDestroy called")
+        super.onDestroy()
+    }
 }
