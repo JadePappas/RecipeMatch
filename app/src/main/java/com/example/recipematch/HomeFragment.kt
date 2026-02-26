@@ -5,11 +5,6 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
-import androidx.activity.enableEdgeToEdge
-import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
 
 class HomeFragment : Fragment() {
@@ -27,17 +22,7 @@ class HomeFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View? {
         Log.d(tag, "onCreateView called")
-        val view = inflater.inflate(R.layout.home_fragment, container, false)
-
-        // temporary button to navigate to DiscoverFragment
-        view.findViewById<Button>(R.id.go_to_discover).setOnClickListener {
-            parentFragmentManager.beginTransaction()
-                .replace(R.id.fragment_container, DiscoverFragment())
-                .addToBackStack(null)  // allow back navigation
-                .commit()
-        }
-
-        return view
+        return inflater.inflate(R.layout.home_fragment, container, false)
     }
 
     // TODO: Lifecycle logging
