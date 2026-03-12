@@ -10,7 +10,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.recipematch"
+        applicationId = "com.recipematch.app"
         minSdk = 28
         targetSdk = 36
         versionCode = 1
