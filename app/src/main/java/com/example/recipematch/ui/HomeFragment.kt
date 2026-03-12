@@ -1,4 +1,4 @@
-package com.example.recipematch
+package com.example.recipematch.ui
 
 import android.os.Bundle
 import android.util.Log
@@ -6,6 +6,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
+import com.example.recipematch.R
 
 class HomeFragment : Fragment() {
     private val tag = "HomeFragment"

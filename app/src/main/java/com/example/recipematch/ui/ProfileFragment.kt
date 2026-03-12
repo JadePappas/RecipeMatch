@@ -1,4 +1,4 @@
-package com.example.recipematch
+package com.example.recipematch.ui
 
 import android.os.Bundle
 import android.util.Log
@@ -6,10 +6,11 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
+import com.example.recipematch.R
 
-class PantryFragment : Fragment() {
+class ProfileFragment : Fragment() {
 
-    private val tag = "PantryFragment"
+    private val tag = "ProfileFragment"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -22,7 +23,7 @@ class PantryFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View? {
         Log.d(tag, "onCreateView called")
-        return inflater.inflate(R.layout.pantry_fragment, container, false)
+        return inflater.inflate(R.layout.profile_fragment, container, false)
     }
 
     override fun onStart() {

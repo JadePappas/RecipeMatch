@@ -1,4 +1,4 @@
-package com.example.recipematch
+package com.example.recipematch.ui
 
 import android.os.Bundle
 import android.util.Log
@@ -7,6 +7,9 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
+import com.example.recipematch.ui.PantryFragment
+import com.example.recipematch.ui.ProfileFragment
+import com.example.recipematch.R
 import com.google.android.material.bottomnavigation.BottomNavigationView
 
 class MainActivity : AppCompatActivity() {

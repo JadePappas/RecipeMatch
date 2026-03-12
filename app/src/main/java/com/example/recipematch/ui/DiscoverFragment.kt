@@ -1,4 +1,4 @@
-package com.example.recipematch
+package com.example.recipematch.ui
 
 import android.os.Bundle
 import android.util.Log
@@ -6,10 +6,10 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
+import com.example.recipematch.R
 
-class ProfileFragment : Fragment() {
-
-    private val tag = "ProfileFragment"
+class DiscoverFragment : Fragment() {
+    private val tag = "DiscoverFragment"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -22,7 +22,7 @@ class ProfileFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View? {
         Log.d(tag, "onCreateView called")
-        return inflater.inflate(R.layout.profile_fragment, container, false)
+        return inflater.inflate(R.layout.discover_fragment, container, false)
     }
 
     override fun onStart() {
@@ -36,22 +36,22 @@ class ProfileFragment : Fragment() {
     }
 
     override fun onPause() {
-        Log.d(tag, "onPause called")
         super.onPause()
+        Log.d(tag, "onPause called")
     }
 
     override fun onStop() {
-        Log.d(tag, "onStop called")
         super.onStop()
+        Log.d(tag, "onStop called")
     }
 
     override fun onDestroyView() {
-        Log.d(tag, "onDestroyView called")
         super.onDestroyView()
+        Log.d(tag, "onDestroyView called")
     }
 
     override fun onDestroy() {
-        Log.d(tag, "onDestroy called")
         super.onDestroy()
+        Log.d(tag, "onDestroy called")
     }
 }
