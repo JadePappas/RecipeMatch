@@ -5,11 +5,6 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
-import androidx.activity.enableEdgeToEdge
-import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
 
 class DiscoverFragment : Fragment() {
@@ -20,23 +15,42 @@ class DiscoverFragment : Fragment() {
         Log.d(tag, "onCreate called")
     }
 
-    // inflate fragment's xml layout
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
         Log.d(tag, "onCreateView called")
-        val view = inflater.inflate(R.layout.discover_fragment, container, false)
-
-        // temporary button to navigate back to HomeFragment
-        view.findViewById<Button>(R.id.back_button).setOnClickListener {
-            // pop this fragment off the back stack and return to the previous fragment
-            parentFragmentManager.popBackStack()
-        }
-
-        return view
+        return inflater.inflate(R.layout.discover_fragment, container, false)
     }
 
-    // TODO: Lifecycle logging
+    override fun onStart() {
+        super.onStart()
+        Log.d(tag, "onStart called")
+    }
+
+    override fun onResume() {
+        super.onResume()
+        Log.d(tag, "onResume called")
+    }
+
+    override fun onPause() {
+        super.onPause()
+        Log.d(tag, "onPause called")
+    }
+
+    override fun onStop() {
+        super.onStop()
+        Log.d(tag, "onStop called")
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        Log.d(tag, "onDestroyView called")
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        Log.d(tag, "onDestroy called")
+    }
 }

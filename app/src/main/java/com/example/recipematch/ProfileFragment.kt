@@ -7,8 +7,9 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 
-class HomeFragment : Fragment() {
-    private val tag = "HomeFragment"
+class ProfileFragment : Fragment() {
+
+    private val tag = "ProfileFragment"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -21,7 +22,7 @@ class HomeFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View? {
         Log.d(tag, "onCreateView called")
-        return inflater.inflate(R.layout.home_fragment, container, false)
+        return inflater.inflate(R.layout.profile_fragment, container, false)
     }
 
     override fun onStart() {

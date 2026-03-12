@@ -13,11 +13,4 @@
         android:textSize="24sp"
         android:textStyle="bold" />
 
-    <!-- temporary back button to go to HomeFragment -->
-    <Button
-        android:id="@+id/back_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Back to Home" />
-
 </LinearLayout>
