@@ -1,58 +1,48 @@
 package com.example.recipematch.ui
 
+import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
+import android.widget.TextView
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.ViewModelProvider
 import com.example.recipematch.R
+import com.example.recipematch.viewmodel.UserViewModel
 
 class ProfileFragment : Fragment() {
 
-    private val tag = "ProfileFragment"
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        Log.d(tag, "onCreate called")
-    }
+    private lateinit var viewModel: UserViewModel
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        Log.d(tag, "onCreateView called")
-        return inflater.inflate(R.layout.profile_fragment, container, false)
-    }
+        val view = inflater.inflate(R.layout.profile_fragment, container, false)
+        
+        viewModel = ViewModelProvider(this).get(UserViewModel::class.java)
 
-    override fun onStart() {
-        super.onStart()
-        Log.d(tag, "onStart called")
-    }
+        val tvUsername = view.findViewById<TextView>(R.id.tvProfileUsername)
+        val btnLogout = view.findViewById<Button>(R.id.btnLogout)
 
-    override fun onResume() {
-        super.onResume()
-        Log.d(tag, "onResume called")
-    }
+        // Fetch and observe user data
+        viewModel.fetchUserProfile()
+        viewModel.userData.observe(viewLifecycleOwner) { user ->
+            if (user != null) {
+                tvUsername.text = "Hello, ${user.username}!"
+            }
+        }
 
-    override fun onPause() {
-        Log.d(tag, "onPause called")
-        super.onPause()
-    }
+        btnLogout.setOnClickListener {
+            viewModel.signOut()
+            val intent = Intent(requireContext(), LoginActivity::class.java)
+            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            startActivity(intent)
+        }
 
-    override fun onStop() {
-        Log.d(tag, "onStop called")
-        super.onStop()
-    }
-
-    override fun onDestroyView() {
-        Log.d(tag, "onDestroyView called")
-        super.onDestroyView()
-    }
-
-    override fun onDestroy() {
-        Log.d(tag, "onDestroy called")
-        super.onDestroy()
+        return view
     }
 }
