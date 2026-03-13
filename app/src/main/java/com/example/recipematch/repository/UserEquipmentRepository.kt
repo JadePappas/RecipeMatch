@@ -9,14 +9,15 @@ class UserEquipmentRepository {
     private val db = FirebaseFirestore.getInstance()
     private val equipmentCollection = db.collection("userEquipment")
 
-    fun getEquipmentItems(): LiveData<List<UserEquipment>> {
+    fun getEquipmentItems(userId: String): LiveData<List<UserEquipment>> {
         val equipmentItems = MutableLiveData<List<UserEquipment>>()
-        equipmentCollection.addSnapshotListener { snapshot, e ->
-            if (e != null) return@addSnapshotListener
-            if (snapshot != null) {
-                equipmentItems.value = snapshot.toObjects(UserEquipment::class.java)
+        equipmentCollection.whereEqualTo("userId", userId)
+            .addSnapshotListener { snapshot, e ->
+                if (e != null) return@addSnapshotListener
+                if (snapshot != null) {
+                    equipmentItems.value = snapshot.toObjects(UserEquipment::class.java)
+                }
             }
-        }
         return equipmentItems
     }
 

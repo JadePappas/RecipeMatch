@@ -43,7 +43,7 @@ class EquipmentFragment : Fragment() {
         btnAdd.setOnClickListener {
             val name = editName.text.toString()
             if (name.isNotEmpty()) {
-                viewModel.addEquipmentItem(UserEquipment(equipmentName = name))
+                viewModel.addEquipmentItem(name)
                 editName.setText("")
                 Toast.makeText(context, "Added $name", Toast.LENGTH_SHORT).show()
             }
@@ -53,8 +53,6 @@ class EquipmentFragment : Fragment() {
             val name = editName.text.toString()
             val itemToUpdate = lastItems.find { it.equipmentName == name }
             if (itemToUpdate != null) {
-                // In this simple case, update might just re-save the same name, 
-                // but this shows the CRUD pattern.
                 viewModel.updateEquipmentItem(itemToUpdate)
                 Toast.makeText(context, "Updated $name", Toast.LENGTH_SHORT).show()
             }

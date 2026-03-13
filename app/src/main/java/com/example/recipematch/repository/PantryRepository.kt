@@ -9,17 +9,18 @@ class PantryRepository {
     private val db = FirebaseFirestore.getInstance()
     private val pantryCollection = db.collection("pantryItems")
 
-    fun getPantryItems(): LiveData<List<PantryItem>> {
+    fun getPantryItems(userId: String): LiveData<List<PantryItem>> {
         val pantryItems = MutableLiveData<List<PantryItem>>()
-        pantryCollection.addSnapshotListener { snapshot, e ->
-            if (e != null) {
-                return@addSnapshotListener
+        pantryCollection.whereEqualTo("userId", userId)
+            .addSnapshotListener { snapshot, e ->
+                if (e != null) {
+                    return@addSnapshotListener
+                }
+                if (snapshot != null) {
+                    val items = snapshot.toObjects(PantryItem::class.java)
+                    pantryItems.value = items
+                }
             }
-            if (snapshot != null) {
-                val items = snapshot.toObjects(PantryItem::class.java)
-                pantryItems.value = items
-            }
-        }
         return pantryItems
     }
 

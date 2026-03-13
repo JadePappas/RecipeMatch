@@ -8,7 +8,6 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
-import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import com.example.recipematch.R
@@ -47,7 +46,7 @@ class IngredientsFragment : Fragment() {
             val qty = editQuantity.text.toString().toDoubleOrNull() ?: 0.0
             val unit = editUnit.text.toString()
             if (name.isNotEmpty()) {
-                viewModel.addPantryItem(PantryItem(ingredientName = name, quantity = qty, unit = unit))
+                viewModel.addPantryItem(name, qty, unit)
                 clearFields(editName, editQuantity, editUnit)
             }
         }
