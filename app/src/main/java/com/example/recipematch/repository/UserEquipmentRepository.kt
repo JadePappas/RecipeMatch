@@ -1,6 +1,39 @@
 package com.example.recipematch.repository
 
-// Handles all Firestore CRUD operations for a user's kitchen equipment
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import com.example.recipematch.model.UserEquipment
+import com.google.firebase.firestore.FirebaseFirestore
+
 class UserEquipmentRepository {
-    // TODO: implement CRUD here
+    private val db = FirebaseFirestore.getInstance()
+    private val equipmentCollection = db.collection("userEquipment")
+
+    fun getEquipmentItems(userId: String): LiveData<List<UserEquipment>> {
+        val equipmentItems = MutableLiveData<List<UserEquipment>>()
+        equipmentCollection.whereEqualTo("userId", userId)
+            .addSnapshotListener { snapshot, e ->
+                if (e != null) return@addSnapshotListener
+                if (snapshot != null) {
+                    equipmentItems.value = snapshot.toObjects(UserEquipment::class.java)
+                }
+            }
+        return equipmentItems
+    }
+
+    fun addEquipmentItem(item: UserEquipment) {
+        equipmentCollection.add(item)
+    }
+
+    fun updateEquipmentItem(item: UserEquipment) {
+        if (item.id.isNotEmpty()) {
+            equipmentCollection.document(item.id).set(item)
+        }
+    }
+
+    fun deleteEquipmentItem(itemId: String) {
+        if (itemId.isNotEmpty()) {
+            equipmentCollection.document(itemId).delete()
+        }
+    }
 }

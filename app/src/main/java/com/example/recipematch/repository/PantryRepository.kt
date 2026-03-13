@@ -1,6 +1,42 @@
 package com.example.recipematch.repository
 
-// Handles all Firestore CRUD operations for a user's pantry ingredients
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import com.example.recipematch.model.PantryItem
+import com.google.firebase.firestore.FirebaseFirestore
+
 class PantryRepository {
-    // TODO: implement CRUD here
+    private val db = FirebaseFirestore.getInstance()
+    private val pantryCollection = db.collection("pantryItems")
+
+    fun getPantryItems(userId: String): LiveData<List<PantryItem>> {
+        val pantryItems = MutableLiveData<List<PantryItem>>()
+        pantryCollection.whereEqualTo("userId", userId)
+            .addSnapshotListener { snapshot, e ->
+                if (e != null) {
+                    return@addSnapshotListener
+                }
+                if (snapshot != null) {
+                    val items = snapshot.toObjects(PantryItem::class.java)
+                    pantryItems.value = items
+                }
+            }
+        return pantryItems
+    }
+
+    fun addPantryItem(item: PantryItem) {
+        pantryCollection.add(item)
+    }
+
+    fun updatePantryItem(item: PantryItem) {
+        if (item.id.isNotEmpty()) {
+            pantryCollection.document(item.id).set(item)
+        }
+    }
+
+    fun deletePantryItem(itemId: String) {
+        if (itemId.isNotEmpty()) {
+            pantryCollection.document(itemId).delete()
+        }
+    }
 }
