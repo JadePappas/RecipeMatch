@@ -5,6 +5,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.switchMap
 import com.example.recipematch.model.PantryItem
+import com.example.recipematch.model.UserEquipment
 import com.example.recipematch.repository.PantryRepository
 import com.google.firebase.auth.FirebaseAuth
 
@@ -21,6 +22,14 @@ class PantryViewModel : ViewModel() {
     val pantryItems: LiveData<List<PantryItem>> = _userId.switchMap { uid ->
         if (uid != null) {
             pantryRepository.getPantryItems(uid)
+        } else {
+            MutableLiveData(emptyList())
+        }
+    }
+
+    val equipment: LiveData<List<UserEquipment>> = _userId.switchMap { uid ->
+        if (uid != null) {
+            pantryRepository.getUserEquipment(uid)
         } else {
             MutableLiveData(emptyList())
         }
@@ -43,5 +52,18 @@ class PantryViewModel : ViewModel() {
 
     fun deletePantryItem(itemId: String) {
         pantryRepository.deletePantryItem(itemId)
+    }
+
+    fun addEquipment(name: String) {
+        val uid = auth.currentUser?.uid ?: return
+        val newEquipment = UserEquipment(
+            userId = uid,
+            equipmentName = name
+        )
+        pantryRepository.addUserEquipment(newEquipment)
+    }
+
+    fun deleteEquipment(equipmentId: String) {
+        pantryRepository.deleteUserEquipment(equipmentId)
     }
 }
