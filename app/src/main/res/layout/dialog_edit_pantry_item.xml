@@ -70,18 +70,28 @@
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:background="@android:drawable/btn_default"
-                android:text="-"
                 android:src="@android:drawable/ic_media_previous"
                 app:tint="@android:color/black"/>
 
+            <EditText
+                android:id="@+id/et_quantity"
+                android:layout_width="80dp"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="8dp"
+                android:text="100"
+                android:textSize="16sp"
+                android:textColor="@android:color/black"
+                android:gravity="center"
+                android:inputType="numberDecimal"
+                android:background="@android:drawable/editbox_background"/>
+
             <TextView
-                android:id="@+id/tv_quantity"
+                android:id="@+id/tv_unit"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginHorizontal="16dp"
-                android:text="100 grams"
-                android:textSize="16sp"
-                android:textColor="@android:color/black" />
+                android:layout_marginEnd="8dp"
+                android:text="grams"
+                android:textSize="14sp"/>
 
             <ImageButton
                 android:id="@+id/btn_plus"

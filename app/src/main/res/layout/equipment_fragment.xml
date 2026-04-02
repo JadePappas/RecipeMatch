@@ -23,25 +23,43 @@
                 android:layout_weight="1"
                 android:hint="Search equipment..."
                 android:background="@android:drawable/editbox_background"
-                android:padding="12dp"/>
+                android:padding="12dp"
+                android:inputType="text"/>
 
             <ImageButton
                 android:id="@+id/btn_filter_equipment"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
-                android:src="@android:drawable/ic_menu_manage"
+                android:src="@android:drawable/ic_menu_search"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:layout_marginStart="8dp"/>
+                android:layout_marginStart="8dp"
+                android:contentDescription="Filter"/>
         </LinearLayout>
 
-        <TextView
-            android:id="@+id/tv_in_kitchen_title"
-            android:layout_width="wrap_content"
+        <RelativeLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="In Kitchen (0)"
-            android:textStyle="bold"
-            android:layout_marginTop="16dp"
-            android:textSize="18sp"/>
+            android:layout_marginTop="16dp">
+
+            <TextView
+                android:id="@+id/tv_in_kitchen_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="In Kitchen (0)"
+                android:textStyle="bold"
+                android:textSize="18sp"
+                android:layout_centerVertical="true"/>
+
+            <Button
+                android:id="@+id/btn_view_all_kitchen"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentEnd="true"
+                android:text="View All"
+                android:textAllCaps="false"
+                android:textColor="#2196F3"/>
+        </RelativeLayout>
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rv_in_kitchen"

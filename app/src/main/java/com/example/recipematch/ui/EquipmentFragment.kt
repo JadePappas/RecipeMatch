@@ -2,12 +2,16 @@ package com.example.recipematch.ui
 
 import android.app.Dialog
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
+import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.recipematch.R
 import com.example.recipematch.model.UserEquipment
@@ -21,6 +25,8 @@ class EquipmentFragment : Fragment() {
     
     private lateinit var tvInKitchenTitle: TextView
     private lateinit var tvAddItemsTitle: TextView
+    private lateinit var rvInKitchen: RecyclerView
+    private var isKitchenExpanded = false
 
     private val allCommonEquipment = listOf(
         "Frying Pan", "Saucepan", "Stock Pot", "Baking Sheet", "Oven Mitts",
@@ -39,8 +45,9 @@ class EquipmentFragment : Fragment() {
 
         tvInKitchenTitle = view.findViewById(R.id.tv_in_kitchen_title)
         tvAddItemsTitle = view.findViewById(R.id.tv_add_items_title)
-        val rvInKitchen = view.findViewById<RecyclerView>(R.id.rv_in_kitchen)
+        rvInKitchen = view.findViewById(R.id.rv_in_kitchen)
         val rvAddEquipment = view.findViewById<RecyclerView>(R.id.rv_add_equipment)
+        val btnViewAllKitchen = view.findViewById<Button>(R.id.btn_view_all_kitchen)
 
         // In Kitchen Adapter
         inKitchenAdapter = EquipmentInStockAdapter { item ->
@@ -61,12 +68,26 @@ class EquipmentFragment : Fragment() {
         }
 
         val searchBar = view.findViewById<EditText>(R.id.search_equipment)
-        searchBar.setOnEditorActionListener { _, _, _ ->
-            val query = searchBar.text.toString().lowercase()
-            val filtered = allCommonEquipment.filter { it.lowercase().contains(query) }
-            addEquipmentAdapter.updateItems(filtered)
-            tvAddItemsTitle.text = "Add Items (${filtered.size})"
-            true
+        searchBar.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                val query = s.toString().lowercase()
+                val filtered = allCommonEquipment.filter { it.lowercase().contains(query) }
+                addEquipmentAdapter.updateItems(filtered)
+                tvAddItemsTitle.text = "Add Items (${filtered.size})"
+            }
+            override fun afterTextChanged(s: Editable?) {}
+        })
+
+        btnViewAllKitchen.setOnClickListener {
+            isKitchenExpanded = !isKitchenExpanded
+            if (isKitchenExpanded) {
+                rvInKitchen.layoutManager = GridLayoutManager(requireContext(), 2)
+                btnViewAllKitchen.text = "Show Less"
+            } else {
+                rvInKitchen.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
+                btnViewAllKitchen.text = "View All"
+            }
         }
 
         return view
