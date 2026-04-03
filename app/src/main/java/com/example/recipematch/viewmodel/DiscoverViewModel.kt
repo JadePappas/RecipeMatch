@@ -14,8 +14,13 @@ class DiscoverViewModel : ViewModel() {
 
     private val discoverRepository = DiscoverRepository()
     
+    // LiveData for the Discover tab (affected by user filters)
     private val _recipes = MutableLiveData<List<Recipe>>()
     val recipes: LiveData<List<Recipe>> = _recipes
+
+    // New LiveData for the Home tab (stays consistent/unfiltered)
+    private val _homeRecipes = MutableLiveData<List<Recipe>>()
+    val homeRecipes: LiveData<List<Recipe>> = _homeRecipes
 
     private val _isLoading = MutableLiveData<Boolean>()
     val isLoading: LiveData<Boolean> = _isLoading
@@ -24,6 +29,7 @@ class DiscoverViewModel : ViewModel() {
     val selectedRecipe: LiveData<Recipe?> = _selectedRecipe
 
     private var searchJob: Job? = null
+    private var homeJob: Job? = null
 
     fun searchRecipes(
         query: String? = null,
@@ -34,7 +40,7 @@ class DiscoverViewModel : ViewModel() {
         searchJob?.cancel()
         searchJob = viewModelScope.launch {
             _isLoading.value = true
-            Log.d("DiscoverViewModel", "Starting search for: $query")
+            Log.d("DiscoverViewModel", "Discover Search: $query")
             
             val results = discoverRepository.searchRecipes(
                 query = query,
@@ -44,13 +50,25 @@ class DiscoverViewModel : ViewModel() {
             )
             
             if (results != null) {
-                Log.d("DiscoverViewModel", "Search successful: ${results.size} recipes found")
                 _recipes.postValue(results)
             } else {
-                Log.e("DiscoverViewModel", "Search failed - results are null")
                 _recipes.postValue(emptyList())
             }
             _isLoading.postValue(false)
+        }
+    }
+
+    // Fetches a broad set of recipes specifically for Home page recommendations
+    fun fetchHomeRecipes() {
+        if (!_homeRecipes.value.isNullOrEmpty()) return // Don't re-fetch if we already have them
+        
+        homeJob?.cancel()
+        homeJob = viewModelScope.launch {
+            Log.d("DiscoverViewModel", "Fetching Home Recommendations...")
+            val results = discoverRepository.searchRecipes() // No filters
+            if (results != null) {
+                _homeRecipes.postValue(results)
+            }
         }
     }
 

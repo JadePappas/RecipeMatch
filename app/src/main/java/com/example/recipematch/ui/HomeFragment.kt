@@ -44,19 +44,14 @@ class HomeFragment : Fragment() {
         val rvRecommended = view.findViewById<RecyclerView>(R.id.rv_recommended)
         val btnSeeAll = view.findViewById<TextView>(R.id.see_all_recommended)
 
-        // Setup horizontal recommended list
         rvRecommended.layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
         recommendedAdapter = RecipeAdapter { recipe -> showRecipeDetail(recipe) }
         rvRecommended.adapter = recommendedAdapter
 
-        // Personalization
         userViewModel.userData.observe(viewLifecycleOwner) { user ->
-            user?.let {
-                tvGreeting.text = "Hi, ${it.displayName.ifEmpty { it.username }}!"
-            }
+            user?.let { tvGreeting.text = "Hi, ${it.displayName.ifEmpty { it.username }}!" }
         }
 
-        // Pantry Stats & Equipment
         pantryViewModel.pantryItems.observe(viewLifecycleOwner) { items ->
             tvItemsAvailable.text = "You have ${items.size} items available"
             recommendedAdapter.updateUserData(items, pantryViewModel.equipment.value ?: emptyList())
@@ -70,43 +65,34 @@ class HomeFragment : Fragment() {
             updateMatchCount()
         }
 
-        discoverViewModel.recipes.observe(viewLifecycleOwner) { recipes ->
+        // Observe the new, stable home-specific recipes
+        discoverViewModel.homeRecipes.observe(viewLifecycleOwner) { 
             sortAndSubmitRecommended()
             updateMatchCount()
         }
 
-        // Navigation
-        btnUpdatePantry.setOnClickListener {
-            navigateToTab(R.id.navigation_pantry)
-        }
-
-        btnSeeAll.setOnClickListener {
-            navigateToTab(R.id.navigation_discover)
-        }
+        btnUpdatePantry.setOnClickListener { navigateToTab(R.id.navigation_pantry) }
+        btnSeeAll.setOnClickListener { navigateToTab(R.id.navigation_discover) }
 
         setupExploreButtons(view)
 
-        // Automatically trigger search if it hasn't been done yet
-        if (discoverViewModel.recipes.value.isNullOrEmpty()) {
-            discoverViewModel.searchRecipes()
-        }
+        // Trigger the initial stable fetch for Home recommendations
+        discoverViewModel.fetchHomeRecipes()
 
         return view
     }
 
     private fun sortAndSubmitRecommended() {
-        val recipes = discoverViewModel.recipes.value ?: return
+        val recipes = discoverViewModel.homeRecipes.value ?: return
         val userIngs = pantryViewModel.pantryItems.value ?: emptyList()
         val userEqs = pantryViewModel.equipment.value ?: emptyList()
 
-        val sortedList = recipes.sortedByDescending { recipe ->
-            calculateMatchPercentage(recipe, userIngs, userEqs)
-        }
+        val sortedList = recipes.sortedByDescending { calculateMatchPercentage(it, userIngs, userEqs) }
         recommendedAdapter.submitList(sortedList.take(5))
     }
 
     private fun updateMatchCount() {
-        val recipes = discoverViewModel.recipes.value ?: return
+        val recipes = discoverViewModel.homeRecipes.value ?: return
         val userIngs = pantryViewModel.pantryItems.value ?: emptyList()
         val userEqs = pantryViewModel.equipment.value ?: emptyList()
 
@@ -115,18 +101,15 @@ class HomeFragment : Fragment() {
             return
         }
 
-        // Calculate all matches and sort
         val recipeMatchPairs = recipes.map { it to calculateMatchPercentage(it, userIngs, userEqs) }
             .sortedByDescending { it.second }
         
-        // Take top 3
         val top3Matches = recipeMatchPairs.take(3)
         val count = top3Matches.size
 
         val tvFound = view?.findViewById<TextView>(R.id.tv_recipes_found)
         tvFound?.text = "We found your top $count matches →"
 
-        // Make the text clickable to show these specific top 3 matches
         tvFound?.setOnClickListener {
             parentFragmentManager.beginTransaction()
                 .replace(R.id.fragment_container, BestMatchesFragment.newInstance(top3Matches.map { it.first }))
@@ -162,9 +145,7 @@ class HomeFragment : Fragment() {
     private fun calculateMatchPercentage(recipe: Recipe, userIngs: List<com.example.recipematch.model.PantryItem>, userEqs: List<com.example.recipematch.model.UserEquipment>): Int {
         val recipeIngredients = recipe.extendedIngredients ?: emptyList()
         val recipeEquipment = recipe.analyzedInstructions?.flatMap { it.steps }?.flatMap { it.equipment ?: emptyList() }?.distinctBy { it.id } ?: emptyList()
-
         if (recipeIngredients.isEmpty() && recipeEquipment.isEmpty()) return 0
-
         var matchedCount = 0
         recipeIngredients.forEach { recipeIng ->
             if (userIngs.any { it.ingredientName.contains(recipeIng.name, true) || recipeIng.name.contains(it.ingredientName, true) }) matchedCount++
@@ -172,7 +153,6 @@ class HomeFragment : Fragment() {
         recipeEquipment.forEach { reqEq ->
             if (userEqs.any { it.equipmentName.contains(reqEq.name, true) || reqEq.name.contains(it.equipmentName, true) }) matchedCount++
         }
-
         val totalRequired = recipeIngredients.size + recipeEquipment.size
         return if (totalRequired > 0) (matchedCount * 100) / totalRequired else 0
     }

@@ -26,7 +26,7 @@ class DiscoverRepository {
         cuisine: String? = null
     ): List<Recipe>? {
         return try {
-            Log.d("DiscoverRepository", "API Key used: ${Config.SPOONACULAR_API_KEY.take(5)}***")
+            // Increased 'number' to 100 to provide a better pool for matching
             val response = service.searchRecipes(
                 apiKey = Config.SPOONACULAR_API_KEY,
                 query = query,
@@ -34,17 +34,15 @@ class DiscoverRepository {
                 equipment = equipment,
                 type = type,
                 diet = diet,
-                cuisine = cuisine
+                cuisine = cuisine,
+                number = 100 
             )
             if (response.isSuccessful) {
                 response.body()?.results
             } else {
-                Log.e("DiscoverRepository", "Search error: ${response.code()} ${response.message()}")
-                Log.e("DiscoverRepository", "Error body: ${response.errorBody()?.string()}")
                 null
             }
         } catch (e: Exception) {
-            Log.e("DiscoverRepository", "Exception during search: ${e.message}")
             null
         }
     }
@@ -55,11 +53,9 @@ class DiscoverRepository {
             if (response.isSuccessful) {
                 response.body()
             } else {
-                Log.e("DiscoverRepository", "Info error: ${response.code()} ${response.message()}")
                 null
             }
         } catch (e: Exception) {
-            Log.e("DiscoverRepository", "Exception during info fetch: ${e.message}")
             null
         }
     }
