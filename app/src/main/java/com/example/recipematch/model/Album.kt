@@ -7,5 +7,6 @@ data class Album(
     val albumId: String = "",
     val userId: String = "",
     val albumName: String = "",
+    val coverImageUrl: String = "",
     val recipes: List<String> = emptyList() // stores recipe_api_ids
 )

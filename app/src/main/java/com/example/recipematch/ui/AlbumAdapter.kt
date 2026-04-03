@@ -8,6 +8,7 @@ import android.widget.TextView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
 import com.example.recipematch.R
 import com.example.recipematch.model.Album
 
@@ -33,8 +34,16 @@ class AlbumAdapter(private val onItemClick: (Album) -> Unit) :
         fun bind(album: Album) {
             tvName.text = album.albumName
             tvCount.text = "${album.recipes.size} recipes"
-            // Placeholder cover
-            ivCover.setImageResource(R.drawable.ic_pantry) 
+            
+            if (album.coverImageUrl.isNotEmpty()) {
+                Glide.with(ivCover.context)
+                    .load(album.coverImageUrl)
+                    .placeholder(R.drawable.ic_pantry)
+                    .centerCrop()
+                    .into(ivCover)
+            } else {
+                ivCover.setImageResource(R.drawable.ic_pantry)
+            }
         }
     }
 

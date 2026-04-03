@@ -32,10 +32,12 @@ class AlbumViewModel : ViewModel() {
         repository.addAlbum(newAlbum) { _ -> }
     }
 
-    fun addRecipeToAlbum(album: Album, recipeId: String) {
+    fun addRecipeToAlbum(album: Album, recipeId: String, imageUrl: String) {
         if (!album.recipes.contains(recipeId)) {
             val updatedRecipes = album.recipes.toMutableList().apply { add(recipeId) }
-            val updatedAlbum = album.copy(recipes = updatedRecipes)
+            // If this is the first recipe, set it as the cover image
+            val coverImage = if (album.coverImageUrl.isEmpty()) imageUrl else album.coverImageUrl
+            val updatedAlbum = album.copy(recipes = updatedRecipes, coverImageUrl = coverImage)
             repository.updateAlbum(updatedAlbum) { _ -> }
         }
     }

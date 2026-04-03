@@ -50,6 +50,7 @@ class ProfileFragment : Fragment() {
         val btnNewAlbum = view.findViewById<Button>(R.id.new_album_button)
         val btnSeeAllHistory = view.findViewById<TextView>(R.id.see_all_history)
         val btnSeeAllAchievements = view.findViewById<TextView>(R.id.see_all_achievements)
+        val btnSeeAllAlbums = view.findViewById<TextView>(R.id.see_all_albums)
         
         val ivBelt = view.findViewById<ImageView>(R.id.gi_belt)
         val tvName = view.findViewById<TextView>(R.id.profile_name)
@@ -71,7 +72,6 @@ class ProfileFragment : Fragment() {
                 val xpRemaining = it.totalXpNeeded - it.xp
                 val recipesNeeded = ceil(xpRemaining.toDouble() / 100.0).toInt()
                 
-                // Set Belt Color based on Level Title
                 val beltColor = when (it.levelTitle) {
                     "White Belt" -> "#FFFFFF"
                     "Yellow Belt" -> "#FFEB3B"
@@ -96,7 +96,7 @@ class ProfileFragment : Fragment() {
             }
         }
 
-        // --- Cooking History Setup (Short View) ---
+        // --- Cooking History ---
         val rvHistory = view.findViewById<RecyclerView>(R.id.history_recycler)
         rvHistory.layoutManager = LinearLayoutManager(context)
         historyAdapter = HistoryAdapter { attempt -> showHistoryDetailDialog(attempt) }
@@ -115,6 +115,7 @@ class ProfileFragment : Fragment() {
                 .commit()
         }
 
+        // --- Achievements ---
         btnSeeAllAchievements?.setOnClickListener {
             parentFragmentManager.beginTransaction()
                 .replace(R.id.fragment_container, AchievementsFragment())
@@ -122,7 +123,7 @@ class ProfileFragment : Fragment() {
                 .commit()
         }
 
-        // --- Albums Setup ---
+        // --- Albums ---
         val rvAlbums = view.findViewById<RecyclerView>(R.id.albums_recycler)
         rvAlbums.layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
         albumAdapter = AlbumAdapter { album -> 
@@ -134,7 +135,15 @@ class ProfileFragment : Fragment() {
         rvAlbums.adapter = albumAdapter
 
         albumViewModel.albums.observe(viewLifecycleOwner) { albums ->
-            albumAdapter.submitList(albums)
+            btnSeeAllAlbums?.visibility = if (albums.size > 2) View.VISIBLE else View.GONE
+            albumAdapter.submitList(albums.take(2)) // Show 2 albums on profile
+        }
+
+        btnSeeAllAlbums?.setOnClickListener {
+            parentFragmentManager.beginTransaction()
+                .replace(R.id.fragment_container, AllAlbumsFragment())
+                .addToBackStack(null)
+                .commit()
         }
 
         btnSettings.setOnClickListener {
@@ -166,7 +175,6 @@ class ProfileFragment : Fragment() {
         if (recipesCount >= 5) unlockedIds.add("italian_master")
         if (beltTitle == "Black Belt") unlockedIds.add("master_rank")
         
-        // Only show 4 badges on the profile preview
         rvAchievements.adapter = AchievementAdapter(allBadges.take(4), unlockedIds)
     }
 

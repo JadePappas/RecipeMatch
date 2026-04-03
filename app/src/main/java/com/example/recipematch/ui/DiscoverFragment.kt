@@ -79,7 +79,6 @@ class DiscoverFragment : Fragment() {
     ): View? {
         val view = inflater.inflate(R.layout.discover_fragment, container, false)
         
-        // Use requireActivity() to share ViewModels across fragments if needed
         discoverViewModel = ViewModelProvider(requireActivity()).get(DiscoverViewModel::class.java)
         pantryViewModel = ViewModelProvider(requireActivity()).get(PantryViewModel::class.java)
         userViewModel = ViewModelProvider(requireActivity()).get(UserViewModel::class.java)
@@ -102,7 +101,6 @@ class DiscoverFragment : Fragment() {
 
         view.findViewById<ImageButton>(R.id.btn_search_discover).setOnClickListener {
             val query = view.findViewById<EditText>(R.id.et_search_recipe).text.toString()
-            Log.d(tag, "Searching for: $query")
             discoverViewModel.searchRecipes(query = query)
         }
 
@@ -115,7 +113,6 @@ class DiscoverFragment : Fragment() {
         }
 
         discoverViewModel.recipes.observe(viewLifecycleOwner) { 
-            Log.d(tag, "Recipes updated: ${it.size} items")
             recipeAdapter.submitList(it) 
         }
         
@@ -123,7 +120,6 @@ class DiscoverFragment : Fragment() {
             progressBar.visibility = if (it) View.VISIBLE else View.GONE 
         }
 
-        // Only search if we don't have recipes yet
         if (discoverViewModel.recipes.value.isNullOrEmpty()) {
             discoverViewModel.searchRecipes()
         }
@@ -156,18 +152,14 @@ class DiscoverFragment : Fragment() {
         btnBack.setOnClickListener { detailContainer.visibility = View.GONE }
         
         cvAddPhoto.setOnClickListener {
-            if (currentPhotoUri != null) {
-                showPhotoPopup(currentPhotoUri!!)
-            } else {
-                checkCameraPermission()
-            }
+            if (currentPhotoUri != null) showPhotoPopup(currentPhotoUri!!)
+            else checkCameraPermission()
         }
 
         btnSaveToAlbum.setOnClickListener {
-            showAlbumSelectionDialog(recipe.id.toString())
+            showAlbumSelectionDialog(recipe)
         }
 
-        // Fetch existing attempt
         val userId = auth.currentUser?.uid
         if (userId != null) {
             viewLifecycleOwner.lifecycleScope.launch {
@@ -185,11 +177,8 @@ class DiscoverFragment : Fragment() {
         }
 
         btnSaveAttempt.setOnClickListener {
-            if (currentAttempt == null) {
-                saveNewAttempt(recipe, btnSaveAttempt)
-            } else {
-                deleteAttempt(btnSaveAttempt)
-            }
+            if (currentAttempt == null) saveNewAttempt(recipe, btnSaveAttempt)
+            else deleteAttempt(btnSaveAttempt)
         }
 
         tvName.text = recipe.title
@@ -205,7 +194,7 @@ class DiscoverFragment : Fragment() {
         discoverViewModel.getRecipeDetails(recipe.id)
     }
 
-    private fun showAlbumSelectionDialog(recipeId: String) {
+    private fun showAlbumSelectionDialog(recipe: Recipe) {
         val albums = albumViewModel.albums.value ?: emptyList()
         if (albums.isEmpty()) {
             Toast.makeText(context, "No albums found. Create one in Profile!", Toast.LENGTH_SHORT).show()
@@ -217,7 +206,7 @@ class DiscoverFragment : Fragment() {
             .setTitle("Select Album")
             .setItems(albumNames) { _, which ->
                 val selectedAlbum = albums[which]
-                albumViewModel.addRecipeToAlbum(selectedAlbum, recipeId)
+                albumViewModel.addRecipeToAlbum(selectedAlbum, recipe.id.toString(), recipe.image)
                 Toast.makeText(context, "Saved to ${selectedAlbum.albumName}", Toast.LENGTH_SHORT).show()
             }
             .setNegativeButton("Cancel", null)
@@ -228,19 +217,13 @@ class DiscoverFragment : Fragment() {
         val dialog = Dialog(requireContext())
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
         dialog.setContentView(R.layout.dialog_full_photo)
-        
         val imageView = dialog.findViewById<ImageView>(R.id.iv_full_photo)
-        val btnClose = dialog.findViewById<ImageButton>(R.id.btn_close_popup)
-        val btnRetake = dialog.findViewById<Button>(R.id.btn_retake_photo)
-        
         imageView.setImageURI(uri)
-        
-        btnClose.setOnClickListener { dialog.dismiss() }
-        btnRetake.setOnClickListener {
+        dialog.findViewById<ImageButton>(R.id.btn_close_popup).setOnClickListener { dialog.dismiss() }
+        dialog.findViewById<Button>(R.id.btn_retake_photo).setOnClickListener {
             dialog.dismiss()
             checkCameraPermission()
         }
-        
         dialog.show()
         dialog.window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
     }
@@ -288,7 +271,7 @@ class DiscoverFragment : Fragment() {
         )
         attemptRepo.saveRecipeAttempt(attempt) { success ->
             if (success) {
-                userViewModel.rewardExperience(100) // Reward 100 XP
+                userViewModel.rewardExperience(100)
                 viewLifecycleOwner.lifecycleScope.launch {
                     currentAttempt = attemptRepo.getRecipeAttempt(userId, recipe.id.toString())
                     setCompletedUI(button)
@@ -323,7 +306,7 @@ class DiscoverFragment : Fragment() {
                 val userHas = pantryViewModel.pantryItems.value?.any { 
                     ingredient.name.contains(it.ingredientName, true) || it.ingredientName.contains(ingredient.name, true)
                 } ?: false
-                btnStatus.text = if (userHas) "In Kitchen" else "Need to buy"
+                btnStatus.text = if (userHas) "In Stock" else "Need to buy"
                 btnStatus.setBackgroundColor(resources.getColor(if (userHas) android.R.color.holo_green_light else android.R.color.holo_red_light, null))
                 ingContainer.addView(item)
             }
