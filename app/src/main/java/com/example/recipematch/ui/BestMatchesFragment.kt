@@ -20,7 +20,7 @@ import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
-import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.example.recipematch.R
@@ -38,22 +38,19 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 
-class AlbumDetailFragment : Fragment() {
+class BestMatchesFragment : Fragment() {
 
-    private lateinit var albumViewModel: AlbumViewModel
+    private lateinit var discoverViewModel: DiscoverViewModel
     private lateinit var pantryViewModel: PantryViewModel
     private lateinit var userViewModel: UserViewModel
-    private lateinit var discoverViewModel: DiscoverViewModel
+    private lateinit var albumViewModel: AlbumViewModel
     private lateinit var recipeAdapter: RecipeAdapter
+    private lateinit var detailContainer: FrameLayout
     
     private val attemptRepo = RecipeAttemptRepository()
     private val auth = FirebaseAuth.getInstance()
     private var currentAttempt: RecipeAttempt? = null
-    
-    private lateinit var detailContainer: FrameLayout
-    private var albumId: String? = null
-    private var albumName: String? = null
-    private var recipeIds: List<String> = emptyList()
+    private var recipesToShow: List<Recipe> = emptyList()
 
     private var currentPhotoUri: Uri? = null
     private var ivAttemptPreview: ImageView? = null
@@ -71,55 +68,37 @@ class AlbumDetailFragment : Fragment() {
     }
 
     companion object {
-        fun newInstance(album: Album): AlbumDetailFragment {
-            val fragment = AlbumDetailFragment()
-            val args = Bundle()
-            args.putString("album_id", album.albumId)
-            args.putString("album_name", album.albumName)
-            args.putStringArrayList("recipe_ids", ArrayList(album.recipes))
-            fragment.arguments = args
+        fun newInstance(recipes: List<Recipe>): BestMatchesFragment {
+            val fragment = BestMatchesFragment()
+            fragment.recipesToShow = recipes
             return fragment
         }
-    }
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        albumId = arguments?.getString("album_id")
-        albumName = arguments?.getString("album_name")
-        recipeIds = arguments?.getStringArrayList("recipe_ids") ?: emptyList()
     }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View? {
-        val view = inflater.inflate(R.layout.album_detail_fragment, container, false)
-        albumViewModel = ViewModelProvider(requireActivity()).get(AlbumViewModel::class.java)
+        val view = inflater.inflate(R.layout.best_matches_fragment, container, false)
+        discoverViewModel = ViewModelProvider(requireActivity()).get(DiscoverViewModel::class.java)
         pantryViewModel = ViewModelProvider(requireActivity()).get(PantryViewModel::class.java)
         userViewModel = ViewModelProvider(requireActivity()).get(UserViewModel::class.java)
-        discoverViewModel = ViewModelProvider(requireActivity()).get(DiscoverViewModel::class.java)
+        albumViewModel = ViewModelProvider(requireActivity()).get(AlbumViewModel::class.java)
 
-        val btnBack = view.findViewById<ImageButton>(R.id.btn_album_back)
-        val tvTitle = view.findViewById<TextView>(R.id.tv_album_detail_title)
-        val rvRecipes = view.findViewById<RecyclerView>(R.id.rv_album_recipes)
-        detailContainer = view.findViewById(R.id.album_recipe_detail_container)
+        val btnBack = view.findViewById<ImageButton>(R.id.btn_matches_back)
+        val rvMatches = view.findViewById<RecyclerView>(R.id.rv_best_matches)
+        detailContainer = view.findViewById(R.id.match_recipe_detail_container)
 
-        tvTitle.text = albumName ?: "Album Details"
         btnBack.setOnClickListener { parentFragmentManager.popBackStack() }
 
-        rvRecipes.layoutManager = GridLayoutManager(requireContext(), 2)
+        rvMatches.layoutManager = LinearLayoutManager(requireContext())
         recipeAdapter = RecipeAdapter { recipe -> showRecipeDetail(recipe) }
-        rvRecipes.adapter = recipeAdapter
+        rvMatches.adapter = recipeAdapter
 
         pantryViewModel.pantryItems.observe(viewLifecycleOwner) { items ->
             recipeAdapter.updateUserData(items, pantryViewModel.equipment.value ?: emptyList())
         }
 
-        albumViewModel.albumRecipes.observe(viewLifecycleOwner) { recipes ->
-            recipeAdapter.submitList(recipes)
-        }
-
-        if (recipeIds.isNotEmpty()) albumViewModel.fetchRecipesForAlbum(recipeIds)
-
+        recipeAdapter.submitList(recipesToShow)
         return view
     }
 

@@ -9,6 +9,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -28,8 +29,10 @@ import com.example.recipematch.R
 import com.example.recipematch.model.Recipe
 import com.example.recipematch.model.RecipeAttempt
 import com.example.recipematch.repository.RecipeAttemptRepository
+import com.example.recipematch.viewmodel.AlbumViewModel
 import com.example.recipematch.viewmodel.DiscoverViewModel
 import com.example.recipematch.viewmodel.PantryViewModel
+import com.example.recipematch.viewmodel.UserViewModel
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import com.google.firebase.auth.FirebaseAuth
@@ -42,6 +45,8 @@ class DiscoverFragment : Fragment() {
 
     private lateinit var discoverViewModel: DiscoverViewModel
     private lateinit var pantryViewModel: PantryViewModel
+    private lateinit var userViewModel: UserViewModel
+    private lateinit var albumViewModel: AlbumViewModel
     private lateinit var recipeAdapter: RecipeAdapter
     
     private lateinit var progressBar: ProgressBar
@@ -72,8 +77,11 @@ class DiscoverFragment : Fragment() {
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View? {
         val view = inflater.inflate(R.layout.discover_fragment, container, false)
-        discoverViewModel = ViewModelProvider(this).get(DiscoverViewModel::class.java)
+        
+        discoverViewModel = ViewModelProvider(requireActivity()).get(DiscoverViewModel::class.java)
         pantryViewModel = ViewModelProvider(requireActivity()).get(PantryViewModel::class.java)
+        userViewModel = ViewModelProvider(requireActivity()).get(UserViewModel::class.java)
+        albumViewModel = ViewModelProvider(requireActivity()).get(AlbumViewModel::class.java)
 
         progressBar = view.findViewById(R.id.pb_discover_loading)
         detailContainer = view.findViewById(R.id.recipe_detail_container)
@@ -85,9 +93,11 @@ class DiscoverFragment : Fragment() {
 
         pantryViewModel.pantryItems.observe(viewLifecycleOwner) { items ->
             recipeAdapter.updateUserData(items, pantryViewModel.equipment.value ?: emptyList())
+            sortAndSubmitRecipes()
         }
         pantryViewModel.equipment.observe(viewLifecycleOwner) { equipment ->
             recipeAdapter.updateUserData(pantryViewModel.pantryItems.value ?: emptyList(), equipment)
+            sortAndSubmitRecipes()
         }
 
         view.findViewById<ImageButton>(R.id.btn_search_discover).setOnClickListener {
@@ -102,13 +112,45 @@ class DiscoverFragment : Fragment() {
             discoverViewModel.searchRecipes(cuisine = cuisine)
         }
 
-        discoverViewModel.recipes.observe(viewLifecycleOwner) { recipeAdapter.submitList(it) }
+        discoverViewModel.recipes.observe(viewLifecycleOwner) { 
+            sortAndSubmitRecipes()
+        }
+        
         discoverViewModel.isLoading.observe(viewLifecycleOwner) { 
             progressBar.visibility = if (it) View.VISIBLE else View.GONE 
         }
 
-        discoverViewModel.searchRecipes()
+        if (discoverViewModel.recipes.value.isNullOrEmpty()) {
+            discoverViewModel.searchRecipes()
+        }
+        
         return view
+    }
+
+    private fun sortAndSubmitRecipes() {
+        val currentRecipes = discoverViewModel.recipes.value ?: return
+        val userIngredients = pantryViewModel.pantryItems.value ?: emptyList()
+        val userEquipment = pantryViewModel.equipment.value ?: emptyList()
+
+        val sortedList = currentRecipes.sortedByDescending { recipe ->
+            calculateMatchPercentage(recipe, userIngredients, userEquipment)
+        }
+        recipeAdapter.submitList(sortedList)
+    }
+
+    private fun calculateMatchPercentage(recipe: Recipe, userIngs: List<com.example.recipematch.model.PantryItem>, userEqs: List<com.example.recipematch.model.UserEquipment>): Int {
+        val recipeIngredients = recipe.extendedIngredients ?: emptyList()
+        val recipeEquipment = recipe.analyzedInstructions?.flatMap { it.steps }?.flatMap { it.equipment ?: emptyList() }?.distinctBy { it.id } ?: emptyList()
+        if (recipeIngredients.isEmpty() && recipeEquipment.isEmpty()) return 0
+        var matchedCount = 0
+        recipeIngredients.forEach { recipeIng ->
+            if (userIngs.any { it.ingredientName.contains(recipeIng.name, true) || recipeIng.name.contains(it.ingredientName, true) }) matchedCount++
+        }
+        recipeEquipment.forEach { reqEq ->
+            if (userEqs.any { it.equipmentName.contains(reqEq.name, true) || reqEq.name.contains(it.equipmentName, true) }) matchedCount++
+        }
+        val totalRequired = recipeIngredients.size + recipeEquipment.size
+        return if (totalRequired > 0) (matchedCount * 100) / totalRequired else 0
     }
 
     private fun showRecipeDetail(recipe: Recipe) {
@@ -132,21 +174,13 @@ class DiscoverFragment : Fragment() {
         etAttemptNotes = detailView.findViewById(R.id.et_attempt_notes)
         val cvAddPhoto = detailView.findViewById<View>(R.id.cv_add_photo)
         val btnSaveAttempt = detailView.findViewById<Button>(R.id.btn_save_attempt)
-        val btnSaveNotes = detailView.findViewById<ImageButton>(R.id.btn_save_notes)
+        val btnSaveToAlbum = detailView.findViewById<Button>(R.id.btn_save_to_album)
 
         btnBack.setOnClickListener { detailContainer.visibility = View.GONE }
-        
-        cvAddPhoto.setOnClickListener {
-            if (currentPhotoUri != null) showPhotoPopup(currentPhotoUri!!)
-            else checkCameraPermission()
-        }
+        btnSaveToAlbum.setOnClickListener { showAlbumSelectionDialog(recipe) }
+        cvAddPhoto.setOnClickListener { checkCameraPermission() }
 
-        btnSaveNotes.setOnClickListener {
-            hideKeyboard()
-            if (currentAttempt != null) updateAttemptNotes(recipe.id)
-            else Toast.makeText(context, "Mark as completed first to save notes", Toast.LENGTH_SHORT).show()
-        }
-
+        // Fetch existing attempt
         val userId = auth.currentUser?.uid
         if (userId != null) {
             viewLifecycleOwner.lifecycleScope.launch {
@@ -163,7 +197,7 @@ class DiscoverFragment : Fragment() {
         }
 
         btnSaveAttempt.setOnClickListener {
-            if (currentAttempt == null) saveNewAttempt(recipe.id, btnSaveAttempt)
+            if (currentAttempt == null) saveNewAttempt(recipe, btnSaveAttempt)
             else showUnmarkConfirmation(btnSaveAttempt)
         }
 
@@ -180,6 +214,20 @@ class DiscoverFragment : Fragment() {
         discoverViewModel.getRecipeDetails(recipe.id)
     }
 
+    private fun showAlbumSelectionDialog(recipe: Recipe) {
+        val albums = albumViewModel.albums.value ?: emptyList()
+        if (albums.isEmpty()) {
+            Toast.makeText(context, "No albums found. Create one in Profile!", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val albumNames = albums.map { it.albumName }.toTypedArray()
+        AlertDialog.Builder(requireContext()).setTitle("Select Album").setItems(albumNames) { _, which ->
+            val selectedAlbum = albums[which]
+            albumViewModel.addRecipeToAlbum(selectedAlbum, recipe.id.toString(), recipe.image)
+            Toast.makeText(context, "Saved to ${selectedAlbum.albumName}", Toast.LENGTH_SHORT).show()
+        }.setNegativeButton("Cancel", null).show()
+    }
+
     private fun showUnmarkConfirmation(button: Button) {
         AlertDialog.Builder(requireContext())
             .setTitle("Unmark as Completed?")
@@ -187,33 +235,6 @@ class DiscoverFragment : Fragment() {
             .setPositiveButton("Unmark") { _, _ -> deleteAttempt(button) }
             .setNegativeButton("Cancel", null)
             .show()
-    }
-
-    private fun hideKeyboard() {
-        val imm = requireContext().getSystemService(Activity.INPUT_METHOD_SERVICE) as InputMethodManager
-        imm.hideSoftInputFromWindow(view?.windowToken, 0)
-    }
-
-    private fun updateAttemptNotes(recipeId: Int) {
-        val updatedAttempt = currentAttempt?.copy(notes = etAttemptNotes?.text.toString()) ?: return
-        attemptRepo.saveRecipeAttempt(updatedAttempt) { success ->
-            if (success) Toast.makeText(context, "Notes updated!", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    private fun showPhotoPopup(uri: Uri) {
-        val dialog = Dialog(requireContext())
-        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
-        dialog.setContentView(R.layout.dialog_full_photo)
-        val imageView = dialog.findViewById<ImageView>(R.id.iv_full_photo)
-        imageView.setImageURI(uri)
-        dialog.findViewById<ImageButton>(R.id.btn_close_popup).setOnClickListener { dialog.dismiss() }
-        dialog.findViewById<Button>(R.id.btn_retake_photo).setOnClickListener {
-            dialog.dismiss()
-            checkCameraPermission()
-        }
-        dialog.show()
-        dialog.window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
     }
 
     private fun setCompletedUI(button: Button) {
@@ -247,21 +268,20 @@ class DiscoverFragment : Fragment() {
         cameraLauncher.launch(intent)
     }
 
-    private fun saveNewAttempt(recipeId: Int, button: Button) {
+    private fun saveNewAttempt(recipe: Recipe, button: Button) {
         val userId = auth.currentUser?.uid ?: return
         val attempt = RecipeAttempt(
-            userId = userId,
-            recipeApiId = recipeId.toString(),
-            notes = etAttemptNotes?.text.toString(),
-            photoUri = currentPhotoUri?.toString() ?: "",
+            userId = userId, recipeApiId = recipe.id.toString(), recipeTitle = recipe.title,
+            notes = etAttemptNotes?.text.toString(), photoUri = currentPhotoUri?.toString() ?: "",
             dateCompleted = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
         )
         attemptRepo.saveRecipeAttempt(attempt) { success ->
             if (success) {
+                userViewModel.rewardExperience(100)
                 viewLifecycleOwner.lifecycleScope.launch {
-                    currentAttempt = attemptRepo.getRecipeAttempt(userId, recipeId.toString())
+                    currentAttempt = attemptRepo.getRecipeAttempt(userId, recipe.id.toString())
                     setCompletedUI(button)
-                    Toast.makeText(context, "Attempt saved!", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Recipe Completed! +100 XP", Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -283,43 +303,29 @@ class DiscoverFragment : Fragment() {
     }
 
     private fun populateDetails(recipe: Recipe, ingContainer: LinearLayout, eqContainer: LinearLayout, insContainer: LinearLayout) {
-        // Populate Ingredients
         if (recipe.extendedIngredients != null) {
             ingContainer.removeAllViews()
             recipe.extendedIngredients.forEach { ingredient ->
                 val item = layoutInflater.inflate(R.layout.item_recipe_ingredient, ingContainer, false)
                 item.findViewById<TextView>(R.id.tv_ingredient_name).text = ingredient.original
                 val btnStatus = item.findViewById<Button>(R.id.btn_ingredient_status)
-                val userHas = pantryViewModel.pantryItems.value?.any { 
-                    ingredient.name.contains(it.ingredientName, true) || it.ingredientName.contains(ingredient.name, true)
-                } ?: false
+                val userHas = pantryViewModel.pantryItems.value?.any { ingredient.name.contains(it.ingredientName, true) || it.ingredientName.contains(ingredient.name, true) } ?: false
                 btnStatus.text = if (userHas) "In Stock" else "Need to buy"
                 btnStatus.setBackgroundColor(resources.getColor(if (userHas) android.R.color.holo_green_light else android.R.color.holo_red_light, null))
                 ingContainer.addView(item)
             }
         }
-
-        // Populate Equipment
         val recipeEquipment = recipe.analyzedInstructions?.flatMap { it.steps }?.flatMap { it.equipment ?: emptyList() }?.distinctBy { it.id } ?: emptyList()
         eqContainer.removeAllViews()
-        if (recipeEquipment.isEmpty()) {
-            val tvNone = TextView(context).apply { text = "No specific equipment listed." }
-            eqContainer.addView(tvNone)
-        } else {
-            recipeEquipment.forEach { eq ->
-                val item = layoutInflater.inflate(R.layout.item_recipe_ingredient, eqContainer, false)
-                item.findViewById<TextView>(R.id.tv_ingredient_name).text = eq.name.replaceFirstChar { it.uppercase() }
-                val btnStatus = item.findViewById<Button>(R.id.btn_ingredient_status)
-                val userHas = pantryViewModel.equipment.value?.any { 
-                    eq.name.contains(it.equipmentName, true) || it.equipmentName.contains(eq.name, true)
-                } ?: false
-                btnStatus.text = if (userHas) "In Kitchen" else "Missing"
-                btnStatus.setBackgroundColor(resources.getColor(if (userHas) android.R.color.holo_green_light else android.R.color.holo_red_light, null))
-                eqContainer.addView(item)
-            }
+        recipeEquipment.forEach { eq ->
+            val item = layoutInflater.inflate(R.layout.item_recipe_ingredient, eqContainer, false)
+            item.findViewById<TextView>(R.id.tv_ingredient_name).text = eq.name.replaceFirstChar { it.uppercase() }
+            val btnStatus = item.findViewById<Button>(R.id.btn_ingredient_status)
+            val userHas = pantryViewModel.equipment.value?.any { eq.name.contains(it.equipmentName, true) || it.equipmentName.contains(eq.name, true) } ?: false
+            btnStatus.text = if (userHas) "In Kitchen" else "Missing"
+            btnStatus.setBackgroundColor(resources.getColor(if (userHas) android.R.color.holo_green_light else android.R.color.holo_red_light, null))
+            eqContainer.addView(item)
         }
-
-        // Populate Instructions
         insContainer.removeAllViews()
         recipe.analyzedInstructions?.firstOrNull()?.steps?.forEach { step ->
             val stepView = layoutInflater.inflate(R.layout.item_instruction_step, insContainer, false)

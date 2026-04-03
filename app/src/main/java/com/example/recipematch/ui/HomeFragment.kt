@@ -110,10 +110,29 @@ class HomeFragment : Fragment() {
         val userIngs = pantryViewModel.pantryItems.value ?: emptyList()
         val userEqs = pantryViewModel.equipment.value ?: emptyList()
 
-        val perfectMatches = recipes.count { recipe ->
-            calculateMatchPercentage(recipe, userIngs, userEqs) == 100
+        if (recipes.isEmpty()) {
+            view?.findViewById<TextView>(R.id.tv_recipes_found)?.text = "Finding recipes you can make..."
+            return
         }
-        view?.findViewById<TextView>(R.id.tv_recipes_found)?.text = "We found $perfectMatches recipes you can make right now!"
+
+        // Calculate all matches and sort
+        val recipeMatchPairs = recipes.map { it to calculateMatchPercentage(it, userIngs, userEqs) }
+            .sortedByDescending { it.second }
+        
+        // Take top 3
+        val top3Matches = recipeMatchPairs.take(3)
+        val count = top3Matches.size
+
+        val tvFound = view?.findViewById<TextView>(R.id.tv_recipes_found)
+        tvFound?.text = "We found your top $count matches →"
+
+        // Make the text clickable to show these specific top 3 matches
+        tvFound?.setOnClickListener {
+            parentFragmentManager.beginTransaction()
+                .replace(R.id.fragment_container, BestMatchesFragment.newInstance(top3Matches.map { it.first }))
+                .addToBackStack(null)
+                .commit()
+        }
     }
 
     private fun setupExploreButtons(view: View) {
