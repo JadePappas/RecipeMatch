@@ -1,6 +1,5 @@
 package com.example.recipematch.repository
 
-import android.util.Log
 import com.example.recipematch.model.AnalyzedInstruction
 import com.example.recipematch.model.Recipe
 import com.example.recipematch.network.SpoonacularService
@@ -23,10 +22,13 @@ class DiscoverRepository {
         equipment: String? = null,
         diet: String? = null,
         type: String? = null,
-        cuisine: String? = null
+        cuisine: String? = null,
+        number: Int = 20,
+        offset: Int = 0
     ): List<Recipe>? {
         return try {
-            // Increased 'number' to 100 to provide a better pool for matching
+            // Explicitly set addRecipeInfo and fillIngredients to true 
+            // to ensure match data is returned for all recipes.
             val response = service.searchRecipes(
                 apiKey = Config.SPOONACULAR_API_KEY,
                 query = query,
@@ -35,7 +37,10 @@ class DiscoverRepository {
                 type = type,
                 diet = diet,
                 cuisine = cuisine,
-                number = 100 
+                number = number,
+                offset = offset,
+                addRecipeInfo = true,
+                fillIngredients = true
             )
             if (response.isSuccessful) {
                 response.body()?.results

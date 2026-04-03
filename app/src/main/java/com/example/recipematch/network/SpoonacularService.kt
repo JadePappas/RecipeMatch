@@ -23,7 +23,8 @@ interface SpoonacularService {
         @Query("cuisine") cuisine: String?,
         @Query("addRecipeInformation") addRecipeInfo: Boolean = true,
         @Query("fillIngredients") fillIngredients: Boolean = true,
-        @Query("number") number: Int = 20
+        @Query("number") number: Int = 20,
+        @Query("offset") offset: Int = 0 // Added for pagination
     ): Response<RecipeResponse>
 
     @GET("recipes/{id}/information")

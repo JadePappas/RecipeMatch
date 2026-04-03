@@ -43,6 +43,7 @@ import java.util.*
 
 class DiscoverFragment : Fragment() {
 
+    private val tag = "DiscoverFragment"
     private lateinit var discoverViewModel: DiscoverViewModel
     private lateinit var pantryViewModel: PantryViewModel
     private lateinit var userViewModel: UserViewModel
@@ -57,10 +58,14 @@ class DiscoverFragment : Fragment() {
     private val auth = FirebaseAuth.getInstance()
     private var currentAttempt: RecipeAttempt? = null
 
+    // RESTORED: These variables are needed for the camera and photo preview to work
     private var currentPhotoUri: Uri? = null
     private var ivAttemptPreview: ImageView? = null
     private var photoPlaceholder: View? = null
     private var etAttemptNotes: EditText? = null
+
+    // Track the last processed list to handle incremental sorting
+    private var lastProcessedRecipes: List<Recipe> = emptyList()
 
     private val cameraLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
@@ -87,20 +92,38 @@ class DiscoverFragment : Fragment() {
         detailContainer = view.findViewById(R.id.recipe_detail_container)
         rvRecipes = view.findViewById(R.id.rv_discover_recipes)
 
-        rvRecipes.layoutManager = GridLayoutManager(requireContext(), 2)
+        val gridLayoutManager = GridLayoutManager(requireContext(), 2)
+        rvRecipes.layoutManager = gridLayoutManager
         recipeAdapter = RecipeAdapter { recipe -> showRecipeDetail(recipe) }
         rvRecipes.adapter = recipeAdapter
 
+        rvRecipes.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                super.onScrolled(recyclerView, dx, dy)
+                if (dy > 0) {
+                    val visibleItemCount = gridLayoutManager.childCount
+                    val totalItemCount = gridLayoutManager.itemCount
+                    val firstVisibleItemPosition = gridLayoutManager.findFirstVisibleItemPosition()
+
+                    if (visibleItemCount + firstVisibleItemPosition >= totalItemCount && firstVisibleItemPosition >= 0) {
+                        discoverViewModel.searchRecipes(isLoadMore = true)
+                    }
+                }
+            }
+        })
+
         pantryViewModel.pantryItems.observe(viewLifecycleOwner) { items ->
             recipeAdapter.updateUserData(items, pantryViewModel.equipment.value ?: emptyList())
-            sortAndSubmitRecipes()
+            sortAndSubmitRecipes(forceFullSort = true)
         }
         pantryViewModel.equipment.observe(viewLifecycleOwner) { equipment ->
             recipeAdapter.updateUserData(pantryViewModel.pantryItems.value ?: emptyList(), equipment)
-            sortAndSubmitRecipes()
+            sortAndSubmitRecipes(forceFullSort = true)
         }
 
         view.findViewById<ImageButton>(R.id.btn_search_discover).setOnClickListener {
+            lastProcessedRecipes = emptyList()
+            rvRecipes.scrollToPosition(0)
             discoverViewModel.searchRecipes(query = view.findViewById<EditText>(R.id.et_search_recipe).text.toString())
         }
 
@@ -109,11 +132,13 @@ class DiscoverFragment : Fragment() {
                 val chip = group.findViewById<Chip>(checkedIds[0])
                 if (chip.text == "All") null else chip.text.toString()
             }
+            lastProcessedRecipes = emptyList()
+            rvRecipes.scrollToPosition(0)
             discoverViewModel.searchRecipes(cuisine = cuisine)
         }
 
-        discoverViewModel.recipes.observe(viewLifecycleOwner) { 
-            sortAndSubmitRecipes()
+        discoverViewModel.recipes.observe(viewLifecycleOwner) { recipes ->
+            sortAndSubmitRecipes(newRecipesFromViewModel = recipes)
         }
         
         discoverViewModel.isLoading.observe(viewLifecycleOwner) { 
@@ -127,15 +152,22 @@ class DiscoverFragment : Fragment() {
         return view
     }
 
-    private fun sortAndSubmitRecipes() {
-        val currentRecipes = discoverViewModel.recipes.value ?: return
-        val userIngredients = pantryViewModel.pantryItems.value ?: emptyList()
-        val userEquipment = pantryViewModel.equipment.value ?: emptyList()
+    private fun sortAndSubmitRecipes(newRecipesFromViewModel: List<Recipe>? = null, forceFullSort: Boolean = false) {
+        val allRecipes = newRecipesFromViewModel ?: discoverViewModel.recipes.value ?: return
+        val userIngs = pantryViewModel.pantryItems.value ?: emptyList()
+        val userEqs = pantryViewModel.equipment.value ?: emptyList()
 
-        val sortedList = currentRecipes.sortedByDescending { recipe ->
-            calculateMatchPercentage(recipe, userIngredients, userEquipment)
+        if (forceFullSort || lastProcessedRecipes.isEmpty()) {
+            val sortedList = allRecipes.sortedByDescending { calculateMatchPercentage(it, userIngs, userEqs) }
+            lastProcessedRecipes = sortedList
+            recipeAdapter.submitList(sortedList)
+        } else if (allRecipes.size > lastProcessedRecipes.size) {
+            val newBatch = allRecipes.subList(lastProcessedRecipes.size, allRecipes.size)
+            val sortedNewBatch = newBatch.sortedByDescending { calculateMatchPercentage(it, userIngs, userEqs) }
+            val updatedList = lastProcessedRecipes + sortedNewBatch
+            lastProcessedRecipes = updatedList
+            recipeAdapter.submitList(updatedList)
         }
-        recipeAdapter.submitList(sortedList)
     }
 
     private fun calculateMatchPercentage(recipe: Recipe, userIngs: List<com.example.recipematch.model.PantryItem>, userEqs: List<com.example.recipematch.model.UserEquipment>): Int {
@@ -180,7 +212,6 @@ class DiscoverFragment : Fragment() {
         btnSaveToAlbum.setOnClickListener { showAlbumSelectionDialog(recipe) }
         cvAddPhoto.setOnClickListener { checkCameraPermission() }
 
-        // Fetch existing attempt
         val userId = auth.currentUser?.uid
         if (userId != null) {
             viewLifecycleOwner.lifecycleScope.launch {

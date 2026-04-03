@@ -28,6 +28,10 @@ class DiscoverViewModel : ViewModel() {
     private val _selectedRecipe = MutableLiveData<Recipe?>()
     val selectedRecipe: LiveData<Recipe?> = _selectedRecipe
 
+    private var currentOffset = 0
+    private val pageSize = 20
+    private var isLastPage = false
+
     private var searchJob: Job? = null
     private var homeJob: Job? = null
 
@@ -35,37 +39,56 @@ class DiscoverViewModel : ViewModel() {
         query: String? = null,
         cuisine: String? = null,
         diet: String? = null,
-        type: String? = null
+        type: String? = null,
+        isLoadMore: Boolean = false
     ) {
+        if (!isLoadMore) {
+            currentOffset = 0
+            isLastPage = false
+        } else if (isLastPage || _isLoading.value == true) {
+            return
+        }
+
         searchJob?.cancel()
         searchJob = viewModelScope.launch {
             _isLoading.value = true
-            Log.d("DiscoverViewModel", "Discover Search: $query")
             
             val results = discoverRepository.searchRecipes(
                 query = query,
                 cuisine = cuisine,
                 diet = diet,
-                type = type
+                type = type,
+                offset = currentOffset,
+                number = pageSize
             )
             
             if (results != null) {
-                _recipes.postValue(results)
-            } else {
+                if (results.size < pageSize) isLastPage = true
+                
+                val currentList = if (isLoadMore) _recipes.value ?: emptyList() else emptyList()
+                _recipes.postValue(currentList + results)
+                currentOffset += pageSize
+            } else if (!isLoadMore) {
                 _recipes.postValue(emptyList())
             }
+            
             _isLoading.postValue(false)
         }
     }
 
-    // Fetches a broad set of recipes specifically for Home page recommendations
-    fun fetchHomeRecipes() {
-        if (!_homeRecipes.value.isNullOrEmpty()) return // Don't re-fetch if we already have them
+    // UPDATED: Now accepts optional ingredients string to find BEST matches for Home
+    fun fetchHomeRecipes(ingredients: String? = null) {
+        if (!_homeRecipes.value.isNullOrEmpty() && ingredients == null) return 
         
         homeJob?.cancel()
         homeJob = viewModelScope.launch {
-            Log.d("DiscoverViewModel", "Fetching Home Recommendations...")
-            val results = discoverRepository.searchRecipes() // No filters
+            Log.d("DiscoverViewModel", "Fetching the absolute BEST matches for Home...")
+            // We search using the user's pantry items to ensure the highest matches are returned first
+            val results = discoverRepository.searchRecipes(
+                ingredients = ingredients,
+                number = 100,
+                offset = 0
+            )
             if (results != null) {
                 _homeRecipes.postValue(results)
             }
