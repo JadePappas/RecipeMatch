@@ -94,9 +94,11 @@ class DiscoverFragment : Fragment() {
 
         pantryViewModel.pantryItems.observe(viewLifecycleOwner) { items ->
             recipeAdapter.updateUserData(items, pantryViewModel.equipment.value ?: emptyList())
+            sortAndSubmitRecipes()
         }
         pantryViewModel.equipment.observe(viewLifecycleOwner) { equipment ->
             recipeAdapter.updateUserData(pantryViewModel.pantryItems.value ?: emptyList(), equipment)
+            sortAndSubmitRecipes()
         }
 
         view.findViewById<ImageButton>(R.id.btn_search_discover).setOnClickListener {
@@ -113,7 +115,7 @@ class DiscoverFragment : Fragment() {
         }
 
         discoverViewModel.recipes.observe(viewLifecycleOwner) { 
-            recipeAdapter.submitList(it) 
+            sortAndSubmitRecipes()
         }
         
         discoverViewModel.isLoading.observe(viewLifecycleOwner) { 
@@ -125,6 +127,35 @@ class DiscoverFragment : Fragment() {
         }
         
         return view
+    }
+
+    private fun sortAndSubmitRecipes() {
+        val currentRecipes = discoverViewModel.recipes.value ?: return
+        val userIngredients = pantryViewModel.pantryItems.value ?: emptyList()
+        val userEquipment = pantryViewModel.equipment.value ?: emptyList()
+
+        val sortedList = currentRecipes.sortedByDescending { recipe ->
+            calculateMatchPercentage(recipe, userIngredients, userEquipment)
+        }
+        recipeAdapter.submitList(sortedList)
+    }
+
+    private fun calculateMatchPercentage(recipe: Recipe, userIngs: List<com.example.recipematch.model.PantryItem>, userEqs: List<com.example.recipematch.model.UserEquipment>): Int {
+        val recipeIngredients = recipe.extendedIngredients ?: emptyList()
+        val recipeEquipment = recipe.analyzedInstructions?.flatMap { it.steps }?.flatMap { it.equipment ?: emptyList() }?.distinctBy { it.id } ?: emptyList()
+
+        if (recipeIngredients.isEmpty() && recipeEquipment.isEmpty()) return 0
+
+        var matchedCount = 0
+        recipeIngredients.forEach { recipeIng ->
+            if (userIngs.any { it.ingredientName.contains(recipeIng.name, true) || recipeIng.name.contains(it.ingredientName, true) }) matchedCount++
+        }
+        recipeEquipment.forEach { reqEq ->
+            if (userEqs.any { it.equipmentName.contains(reqEq.name, true) || reqEq.name.contains(it.equipmentName, true) }) matchedCount++
+        }
+
+        val totalRequired = recipeIngredients.size + recipeEquipment.size
+        return if (totalRequired > 0) (matchedCount * 100) / totalRequired else 0
     }
 
     private fun showRecipeDetail(recipe: Recipe) {
