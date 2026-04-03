@@ -32,7 +32,9 @@ class EquipmentFragment : Fragment() {
         "Frying Pan", "Saucepan", "Stock Pot", "Baking Sheet", "Oven Mitts",
         "Spatula", "Whisk", "Chef's Knife", "Cutting Board", "Measuring Cups",
         "Measuring Spoons", "Mixing Bowl", "Colander", "Tongs", "Blender",
-        "Food Processor", "Toaster", "Microwave", "Air Fryer", "Slow Cooker"
+        "Food Processor", "Toaster", "Microwave", "Air Fryer", "Slow Cooker",
+        "Dutch Oven", "Cast Iron Skillet", "Muffin Tin", "Cake Pan", "Rolling Pin",
+        "Garlic Press", "Grater", "Peeler", "Hand Mixer", "Kitchen Scale"
     )
 
     override fun onCreateView(
@@ -49,16 +51,10 @@ class EquipmentFragment : Fragment() {
         val rvAddEquipment = view.findViewById<RecyclerView>(R.id.rv_add_equipment)
         val btnViewAllKitchen = view.findViewById<Button>(R.id.btn_view_all_kitchen)
 
-        // In Kitchen Adapter
-        inKitchenAdapter = EquipmentInStockAdapter { item ->
-            showEditDialog(item)
-        }
+        inKitchenAdapter = EquipmentInStockAdapter { item -> showEditDialog(item) }
         rvInKitchen.adapter = inKitchenAdapter
 
-        // Add Items Adapter (initially showing common equipment)
-        addEquipmentAdapter = PantryAddAdapter(commonEquipment) { name ->
-            showAddDialog(name)
-        }
+        addEquipmentAdapter = PantryAddAdapter(commonEquipment) { name -> showAddDialog(name) }
         rvAddEquipment.adapter = addEquipmentAdapter
         tvAddItemsTitle.text = "Common Equipment"
 
@@ -67,7 +63,6 @@ class EquipmentFragment : Fragment() {
             tvInKitchenTitle.text = "In Kitchen (${items.size})"
         }
 
-        // Observe search results from Spoonacular API
         viewModel.equipmentSearchResults.observe(viewLifecycleOwner) { results ->
             if (results.isNotEmpty()) {
                 val names = results.map { it.name.replaceFirstChar { char -> char.uppercase() } }
@@ -95,7 +90,7 @@ class EquipmentFragment : Fragment() {
         })
 
         btnViewAllKitchen.setOnClickListener {
-            isKitchenExpanded = !isStockExpanded() // Utility check or internal state
+            isKitchenExpanded = !isKitchenExpanded
             if (isKitchenExpanded) {
                 rvInKitchen.layoutManager = GridLayoutManager(requireContext(), 2)
                 btnViewAllKitchen.text = "Show Less"
@@ -108,11 +103,6 @@ class EquipmentFragment : Fragment() {
         return view
     }
 
-    private fun isStockExpanded(): Boolean {
-        // Simple helper to avoid confusion with the pantry fragment logic
-        return isKitchenExpanded
-    }
-
     private fun showEditDialog(item: UserEquipment) {
         val dialog = Dialog(requireContext())
         val dialogView = layoutInflater.inflate(R.layout.dialog_edit_equipment, null)
@@ -123,12 +113,10 @@ class EquipmentFragment : Fragment() {
         val btnClose = dialogView.findViewById<ImageButton>(R.id.btn_close)
 
         tvName.text = item.equipmentName
-
         btnDelete.setOnClickListener {
             viewModel.deleteEquipment(item.id)
             dialog.dismiss()
         }
-
         btnClose.setOnClickListener { dialog.dismiss() }
 
         dialog.show()
@@ -144,13 +132,11 @@ class EquipmentFragment : Fragment() {
         val btnAdd = dialogView.findViewById<Button>(R.id.btn_add_to_kitchen)
         val btnClose = dialogView.findViewById<ImageButton>(R.id.btn_close)
 
-        tvName.text = name.replaceFirstChar { it.uppercase() }
-
+        tvName.text = name
         btnAdd.setOnClickListener {
             viewModel.addEquipment(name)
             dialog.dismiss()
         }
-
         btnClose.setOnClickListener { dialog.dismiss() }
 
         dialog.show()

@@ -14,7 +14,6 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.recipematch.R
-import com.example.recipematch.model.IngredientSearchResult
 import com.example.recipematch.model.PantryItem
 import com.example.recipematch.viewmodel.PantryViewModel
 
@@ -29,22 +28,19 @@ class IngredientsFragment : Fragment() {
     private lateinit var rvInStock: RecyclerView
     private var isStockExpanded = false
 
-    private val commonIngredients = listOf("Pasta", "Rice", "Chicken", "Beef", "Tomato", "Onion", "Garlic", "Salt", "Pepper", "Olive Oil", "Flour", "Sugar", "Milk", "Eggs", "Butter", "Cheese", "Potato", "Carrot", "Lemon", "Ginger", "Cilantro")
+    private val commonIngredients = listOf(
+        "Pasta", "Rice", "Chicken Breast", "Ground Beef", "Tomato", "Yellow Onion", 
+        "Garlic", "Salt", "Black Pepper", "Olive Oil", "All-Purpose Flour", "Sugar", 
+        "Whole Milk", "Large Eggs", "Unsalted Butter", "Cheddar Cheese", "Russet Potato", 
+        "Carrot", "Lemon", "Fresh Ginger", "Cilantro", "Soy Sauce", "Honey", "Red Pepper Flakes",
+        "Greek Yogurt", "Spinach", "Bell Pepper", "Cucumber", "Bread", "Chicken Stock"
+    )
 
-    // YOUR RESTORED UNIT MAP
     private val ingredientUnits = mapOf(
-        "Milk" to "cups",
-        "Eggs" to "count",
-        "Butter" to "tbsp",
-        "Olive Oil" to "tbsp",
-        "Pasta" to "grams",
-        "Rice" to "grams",
-        "Chicken" to "grams",
-        "Beef" to "grams",
-        "Flour" to "cups",
-        "Sugar" to "cups",
-        "Salt" to "tsp",
-        "Pepper" to "tsp"
+        "Milk" to "cups", "Whole Milk" to "cups", "Large Eggs" to "count", "Unsalted Butter" to "tbsp",
+        "Olive Oil" to "tbsp", "Pasta" to "grams", "Rice" to "grams", "Chicken Breast" to "grams",
+        "Ground Beef" to "grams", "All-Purpose Flour" to "cups", "Sugar" to "cups", "Salt" to "tsp",
+        "Black Pepper" to "tsp", "Chicken Stock" to "ml", "Honey" to "tbsp", "Greek Yogurt" to "cups"
     )
 
     override fun onCreateView(
@@ -64,7 +60,6 @@ class IngredientsFragment : Fragment() {
         inStockAdapter = PantryInStockAdapter { item -> showEditDialog(item) }
         rvInStock.adapter = inStockAdapter
 
-        // Revert adapter to use simple strings
         addItemsAdapter = PantryAddAdapter(commonIngredients) { name -> showAddDialog(name) }
         rvAddItems.adapter = addItemsAdapter
 
@@ -121,8 +116,6 @@ class IngredientsFragment : Fragment() {
         val tvName = dialogView.findViewById<TextView>(R.id.tv_item_name)
         val etQty = dialogView.findViewById<EditText>(R.id.et_quantity)
         val tvUnit = dialogView.findViewById<TextView>(R.id.tv_unit)
-        val btnMinus = dialogView.findViewById<ImageButton>(R.id.btn_minus)
-        val btnPlus = dialogView.findViewById<ImageButton>(R.id.btn_plus)
         val btnUpdate = dialogView.findViewById<Button>(R.id.btn_update)
         val btnDelete = dialogView.findViewById<ImageButton>(R.id.btn_delete)
         val btnClose = dialogView.findViewById<ImageButton>(R.id.btn_close)
@@ -131,12 +124,11 @@ class IngredientsFragment : Fragment() {
         etQty.setText(item.quantity.toString())
         tvUnit.text = item.unit.ifEmpty { "units" }
 
-        btnMinus.setOnClickListener {
+        dialogView.findViewById<ImageButton>(R.id.btn_minus).setOnClickListener {
             val current = etQty.text.toString().toDoubleOrNull() ?: 0.0
             if (current > 0) etQty.setText((current - 1).toString())
         }
-
-        btnPlus.setOnClickListener {
+        dialogView.findViewById<ImageButton>(R.id.btn_plus).setOnClickListener {
             val current = etQty.text.toString().toDoubleOrNull() ?: 0.0
             etQty.setText((current + 1).toString())
         }
@@ -146,13 +138,12 @@ class IngredientsFragment : Fragment() {
             viewModel.updatePantryItem(item.copy(quantity = newQty))
             dialog.dismiss()
         }
-
         btnDelete.setOnClickListener {
             viewModel.deletePantryItem(item.id)
             dialog.dismiss()
         }
-
         btnClose.setOnClickListener { dialog.dismiss() }
+
         dialog.show()
         dialog.window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
     }
@@ -165,24 +156,18 @@ class IngredientsFragment : Fragment() {
         val tvName = dialogView.findViewById<TextView>(R.id.tv_item_name)
         val etQty = dialogView.findViewById<EditText>(R.id.et_quantity)
         val tvUnit = dialogView.findViewById<TextView>(R.id.tv_unit)
-        val btnMinus = dialogView.findViewById<ImageButton>(R.id.btn_minus)
-        val btnPlus = dialogView.findViewById<ImageButton>(R.id.btn_plus)
         val btnAdd = dialogView.findViewById<Button>(R.id.btn_add_to_pantry)
-        val btnClose = dialogView.findViewById<ImageButton>(R.id.btn_close)
 
         tvName.text = name
-        
-        // RESTORED AUTO-UNIT LOOKUP
         val unit = ingredientUnits[name] ?: "units"
         tvUnit.text = unit
         etQty.setText("1")
 
-        btnMinus.setOnClickListener {
+        dialogView.findViewById<ImageButton>(R.id.btn_minus).setOnClickListener {
             val current = etQty.text.toString().toDoubleOrNull() ?: 0.0
             if (current > 0) etQty.setText((current - 1).toString())
         }
-
-        btnPlus.setOnClickListener {
+        dialogView.findViewById<ImageButton>(R.id.btn_plus).setOnClickListener {
             val current = etQty.text.toString().toDoubleOrNull() ?: 0.0
             etQty.setText((current + 1).toString())
         }
@@ -192,8 +177,8 @@ class IngredientsFragment : Fragment() {
             viewModel.addPantryItem(name, qty, unit)
             dialog.dismiss()
         }
+        dialogView.findViewById<ImageButton>(R.id.btn_close).setOnClickListener { dialog.dismiss() }
 
-        btnClose.setOnClickListener { dialog.dismiss() }
         dialog.show()
         dialog.window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
     }

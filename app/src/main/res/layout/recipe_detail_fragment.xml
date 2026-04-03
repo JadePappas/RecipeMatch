@@ -48,30 +48,12 @@
 
             <Button
                 android:id="@+id/btn_save_to_album"
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
                 android:backgroundTint="#2196F3"
                 android:text="Save to Album"
                 android:textAllCaps="false"
                 android:textColor="@android:color/white" />
-
-            <ImageButton
-                android:id="@+id/btn_like"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:layout_marginStart="8dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@android:drawable/btn_star_big_off"
-                app:tint="#4CAF50" />
-
-            <ImageButton
-                android:id="@+id/btn_dislike"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@android:drawable/ic_delete"
-                app:tint="#F44336" />
         </LinearLayout>
 
         <ImageView
@@ -130,6 +112,22 @@
 
         <LinearLayout
             android:id="@+id/ll_ingredients_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingHorizontal="16dp"
+            android:paddingTop="16dp"
+            android:text="Equipment Needed"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:id="@+id/ll_equipment_container"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
@@ -213,19 +211,37 @@
             </FrameLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <EditText
-            android:id="@+id/et_attempt_notes"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:orientation="horizontal"
             android:layout_marginHorizontal="16dp"
             android:layout_marginBottom="16dp"
-            android:background="@android:drawable/editbox_background"
-            android:hint="Add notes about your attempt (e.g., taste, changes made)..."
-            android:inputType="textMultiLine"
-            android:minLines="3"
-            android:gravity="top"
-            android:padding="12dp"
-            android:textSize="14sp" />
+            android:gravity="center_vertical">
+
+            <EditText
+                android:id="@+id/et_attempt_notes"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@android:drawable/editbox_background"
+                android:hint="Add notes about your attempt..."
+                android:inputType="textMultiLine"
+                android:minLines="1"
+                android:maxLines="5"
+                android:gravity="top"
+                android:padding="12dp"
+                android:textSize="14sp" />
+
+            <ImageButton
+                android:id="@+id/btn_save_notes"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginStart="8dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@android:drawable/ic_menu_save"
+                app:tint="#2196F3" />
+        </LinearLayout>
 
         <Button
             android:id="@+id/btn_save_attempt"
