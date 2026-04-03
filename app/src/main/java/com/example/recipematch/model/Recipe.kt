@@ -39,5 +39,27 @@ data class AnalyzedInstruction(
 
 data class Step(
     val number: Int,
-    val step: String
+    val step: String,
+    val ingredients: List<Entity>? = null,
+    val equipment: List<Entity>? = null
+)
+
+data class Entity(
+    val id: Int,
+    val name: String,
+    val localizedName: String,
+    val image: String
+)
+
+data class IngredientSearchResponse(
+    val results: List<IngredientSearchResult>,
+    val offset: Int,
+    val number: Int,
+    val totalResults: Int
+)
+
+data class IngredientSearchResult(
+    val id: Int,
+    val name: String,
+    val image: String
 )

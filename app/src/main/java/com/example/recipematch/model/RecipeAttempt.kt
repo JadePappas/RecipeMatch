@@ -1,7 +1,11 @@
 package com.example.recipematch.model
 
+import com.google.firebase.firestore.DocumentId
+
 data class RecipeAttempt(
-    val attemptId: String = "",
+    @DocumentId
+    val id: String = "",
+    val userId: String = "",
     val recipeApiId: String = "",
     val notes: String = "",
     val photoUri: String = "",

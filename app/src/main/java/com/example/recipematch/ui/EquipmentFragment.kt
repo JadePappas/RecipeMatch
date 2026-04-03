@@ -28,7 +28,7 @@ class EquipmentFragment : Fragment() {
     private lateinit var rvInKitchen: RecyclerView
     private var isKitchenExpanded = false
 
-    private val allCommonEquipment = listOf(
+    private val commonEquipment = listOf(
         "Frying Pan", "Saucepan", "Stock Pot", "Baking Sheet", "Oven Mitts",
         "Spatula", "Whisk", "Chef's Knife", "Cutting Board", "Measuring Cups",
         "Measuring Spoons", "Mixing Bowl", "Colander", "Tongs", "Blender",
@@ -55,26 +55,41 @@ class EquipmentFragment : Fragment() {
         }
         rvInKitchen.adapter = inKitchenAdapter
 
-        // Add Items Adapter
-        addEquipmentAdapter = PantryAddAdapter(allCommonEquipment) { name ->
+        // Add Items Adapter (initially showing common equipment)
+        addEquipmentAdapter = PantryAddAdapter(commonEquipment) { name ->
             showAddDialog(name)
         }
         rvAddEquipment.adapter = addEquipmentAdapter
-        tvAddItemsTitle.text = "Add Items (${allCommonEquipment.size})"
+        tvAddItemsTitle.text = "Common Equipment"
 
         viewModel.equipment.observe(viewLifecycleOwner) { items ->
             inKitchenAdapter.submitList(items)
             tvInKitchenTitle.text = "In Kitchen (${items.size})"
         }
 
+        // Observe search results from Spoonacular API
+        viewModel.equipmentSearchResults.observe(viewLifecycleOwner) { results ->
+            if (results.isNotEmpty()) {
+                val names = results.map { it.name.replaceFirstChar { char -> char.uppercase() } }
+                addEquipmentAdapter.updateItems(names)
+                tvAddItemsTitle.text = "Search Results (${names.size})"
+            } else {
+                addEquipmentAdapter.updateItems(commonEquipment)
+                tvAddItemsTitle.text = "Common Equipment"
+            }
+        }
+
         val searchBar = view.findViewById<EditText>(R.id.search_equipment)
         searchBar.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                val query = s.toString().lowercase()
-                val filtered = allCommonEquipment.filter { it.lowercase().contains(query) }
-                addEquipmentAdapter.updateItems(filtered)
-                tvAddItemsTitle.text = "Add Items (${filtered.size})"
+                val query = s.toString()
+                if (query.length > 2) {
+                    viewModel.searchEquipment(query)
+                } else if (query.isEmpty()) {
+                    addEquipmentAdapter.updateItems(commonEquipment)
+                    tvAddItemsTitle.text = "Common Equipment"
+                }
             }
             override fun afterTextChanged(s: Editable?) {}
         })

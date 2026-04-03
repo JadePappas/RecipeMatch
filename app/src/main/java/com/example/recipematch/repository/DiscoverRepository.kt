@@ -1,5 +1,6 @@
 package com.example.recipematch.repository
 
+import com.example.recipematch.model.AnalyzedInstruction
 import com.example.recipematch.model.Recipe
 import com.example.recipematch.network.SpoonacularService
 import com.example.recipematch.util.Config
@@ -20,7 +21,8 @@ class DiscoverRepository {
         ingredients: String? = null,
         equipment: String? = null,
         diet: String? = null,
-        type: String? = null
+        type: String? = null,
+        cuisine: String? = null
     ): List<Recipe>? {
         return try {
             val response = service.searchRecipes(
@@ -29,7 +31,8 @@ class DiscoverRepository {
                 ingredients = ingredients,
                 equipment = equipment,
                 type = type,
-                diet = diet
+                diet = diet,
+                cuisine = cuisine
             )
             if (response.isSuccessful) {
                 response.body()?.results
@@ -44,6 +47,19 @@ class DiscoverRepository {
     suspend fun getRecipeInformation(id: Int): Recipe? {
         return try {
             val response = service.getRecipeInformation(id, Config.SPOONACULAR_API_KEY)
+            if (response.isSuccessful) {
+                response.body()
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    suspend fun getAnalyzedInstructions(id: Int): List<AnalyzedInstruction>? {
+        return try {
+            val response = service.getAnalyzedInstructions(id, Config.SPOONACULAR_API_KEY)
             if (response.isSuccessful) {
                 response.body()
             } else {
