@@ -2,12 +2,14 @@ package com.example.recipematch.ui
 
 import android.Manifest
 import android.app.Activity
+import android.app.AlertDialog
 import android.app.Dialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -23,11 +25,14 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.example.recipematch.R
+import com.example.recipematch.model.Album
 import com.example.recipematch.model.Recipe
 import com.example.recipematch.model.RecipeAttempt
 import com.example.recipematch.repository.RecipeAttemptRepository
+import com.example.recipematch.viewmodel.AlbumViewModel
 import com.example.recipematch.viewmodel.DiscoverViewModel
 import com.example.recipematch.viewmodel.PantryViewModel
+import com.example.recipematch.viewmodel.UserViewModel
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import com.google.firebase.auth.FirebaseAuth
@@ -38,8 +43,11 @@ import java.util.*
 
 class DiscoverFragment : Fragment() {
 
+    private val tag = "DiscoverFragment"
     private lateinit var discoverViewModel: DiscoverViewModel
     private lateinit var pantryViewModel: PantryViewModel
+    private lateinit var userViewModel: UserViewModel
+    private lateinit var albumViewModel: AlbumViewModel
     private lateinit var recipeAdapter: RecipeAdapter
     
     private lateinit var progressBar: ProgressBar
@@ -70,8 +78,12 @@ class DiscoverFragment : Fragment() {
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View? {
         val view = inflater.inflate(R.layout.discover_fragment, container, false)
-        discoverViewModel = ViewModelProvider(this).get(DiscoverViewModel::class.java)
+        
+        // Use requireActivity() to share ViewModels across fragments if needed
+        discoverViewModel = ViewModelProvider(requireActivity()).get(DiscoverViewModel::class.java)
         pantryViewModel = ViewModelProvider(requireActivity()).get(PantryViewModel::class.java)
+        userViewModel = ViewModelProvider(requireActivity()).get(UserViewModel::class.java)
+        albumViewModel = ViewModelProvider(requireActivity()).get(AlbumViewModel::class.java)
 
         progressBar = view.findViewById(R.id.pb_discover_loading)
         detailContainer = view.findViewById(R.id.recipe_detail_container)
@@ -89,7 +101,9 @@ class DiscoverFragment : Fragment() {
         }
 
         view.findViewById<ImageButton>(R.id.btn_search_discover).setOnClickListener {
-            discoverViewModel.searchRecipes(query = view.findViewById<EditText>(R.id.et_search_recipe).text.toString())
+            val query = view.findViewById<EditText>(R.id.et_search_recipe).text.toString()
+            Log.d(tag, "Searching for: $query")
+            discoverViewModel.searchRecipes(query = query)
         }
 
         view.findViewById<ChipGroup>(R.id.cg_cuisine_filters).setOnCheckedStateChangeListener { group, checkedIds ->
@@ -100,12 +114,20 @@ class DiscoverFragment : Fragment() {
             discoverViewModel.searchRecipes(cuisine = cuisine)
         }
 
-        discoverViewModel.recipes.observe(viewLifecycleOwner) { recipeAdapter.submitList(it) }
+        discoverViewModel.recipes.observe(viewLifecycleOwner) { 
+            Log.d(tag, "Recipes updated: ${it.size} items")
+            recipeAdapter.submitList(it) 
+        }
+        
         discoverViewModel.isLoading.observe(viewLifecycleOwner) { 
             progressBar.visibility = if (it) View.VISIBLE else View.GONE 
         }
 
-        discoverViewModel.searchRecipes()
+        // Only search if we don't have recipes yet
+        if (discoverViewModel.recipes.value.isNullOrEmpty()) {
+            discoverViewModel.searchRecipes()
+        }
+        
         return view
     }
 
@@ -129,6 +151,7 @@ class DiscoverFragment : Fragment() {
         etAttemptNotes = detailView.findViewById(R.id.et_attempt_notes)
         val cvAddPhoto = detailView.findViewById<View>(R.id.cv_add_photo)
         val btnSaveAttempt = detailView.findViewById<Button>(R.id.btn_save_attempt)
+        val btnSaveToAlbum = detailView.findViewById<Button>(R.id.btn_save_to_album)
 
         btnBack.setOnClickListener { detailContainer.visibility = View.GONE }
         
@@ -138,6 +161,10 @@ class DiscoverFragment : Fragment() {
             } else {
                 checkCameraPermission()
             }
+        }
+
+        btnSaveToAlbum.setOnClickListener {
+            showAlbumSelectionDialog(recipe.id.toString())
         }
 
         // Fetch existing attempt
@@ -159,7 +186,7 @@ class DiscoverFragment : Fragment() {
 
         btnSaveAttempt.setOnClickListener {
             if (currentAttempt == null) {
-                saveNewAttempt(recipe.id, btnSaveAttempt)
+                saveNewAttempt(recipe, btnSaveAttempt)
             } else {
                 deleteAttempt(btnSaveAttempt)
             }
@@ -176,6 +203,25 @@ class DiscoverFragment : Fragment() {
             if (updated?.id == recipe.id) populateDetails(updated, ingredientsContainer, instructionsContainer)
         }
         discoverViewModel.getRecipeDetails(recipe.id)
+    }
+
+    private fun showAlbumSelectionDialog(recipeId: String) {
+        val albums = albumViewModel.albums.value ?: emptyList()
+        if (albums.isEmpty()) {
+            Toast.makeText(context, "No albums found. Create one in Profile!", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val albumNames = albums.map { it.albumName }.toTypedArray()
+        AlertDialog.Builder(requireContext())
+            .setTitle("Select Album")
+            .setItems(albumNames) { _, which ->
+                val selectedAlbum = albums[which]
+                albumViewModel.addRecipeToAlbum(selectedAlbum, recipeId)
+                Toast.makeText(context, "Saved to ${selectedAlbum.albumName}", Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     private fun showPhotoPopup(uri: Uri) {
@@ -230,21 +276,23 @@ class DiscoverFragment : Fragment() {
         cameraLauncher.launch(intent)
     }
 
-    private fun saveNewAttempt(recipeId: Int, button: Button) {
+    private fun saveNewAttempt(recipe: Recipe, button: Button) {
         val userId = auth.currentUser?.uid ?: return
         val attempt = RecipeAttempt(
             userId = userId,
-            recipeApiId = recipeId.toString(),
+            recipeApiId = recipe.id.toString(),
+            recipeTitle = recipe.title,
             notes = etAttemptNotes?.text.toString(),
             photoUri = currentPhotoUri?.toString() ?: "",
             dateCompleted = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
         )
         attemptRepo.saveRecipeAttempt(attempt) { success ->
             if (success) {
+                userViewModel.rewardExperience(100) // Reward 100 XP
                 viewLifecycleOwner.lifecycleScope.launch {
-                    currentAttempt = attemptRepo.getRecipeAttempt(userId, recipeId.toString())
+                    currentAttempt = attemptRepo.getRecipeAttempt(userId, recipe.id.toString())
                     setCompletedUI(button)
-                    Toast.makeText(context, "Attempt saved!", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Recipe Completed! +100 XP", Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -275,7 +323,7 @@ class DiscoverFragment : Fragment() {
                 val userHas = pantryViewModel.pantryItems.value?.any { 
                     ingredient.name.contains(it.ingredientName, true) || it.ingredientName.contains(ingredient.name, true)
                 } ?: false
-                btnStatus.text = if (userHas) "In Stock" else "Need to buy"
+                btnStatus.text = if (userHas) "In Kitchen" else "Need to buy"
                 btnStatus.setBackgroundColor(resources.getColor(if (userHas) android.R.color.holo_green_light else android.R.color.holo_red_light, null))
                 ingContainer.addView(item)
             }

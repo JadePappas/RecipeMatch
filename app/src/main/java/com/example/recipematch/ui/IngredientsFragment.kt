@@ -14,10 +14,9 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.recipematch.R
+import com.example.recipematch.model.IngredientSearchResult
 import com.example.recipematch.model.PantryItem
 import com.example.recipematch.viewmodel.PantryViewModel
-import com.google.android.material.chip.Chip
-import com.google.android.material.chip.ChipGroup
 
 class IngredientsFragment : Fragment() {
 
@@ -31,6 +30,22 @@ class IngredientsFragment : Fragment() {
     private var isStockExpanded = false
 
     private val commonIngredients = listOf("Pasta", "Rice", "Chicken", "Beef", "Tomato", "Onion", "Garlic", "Salt", "Pepper", "Olive Oil", "Flour", "Sugar", "Milk", "Eggs", "Butter", "Cheese", "Potato", "Carrot", "Lemon", "Ginger", "Cilantro")
+
+    // YOUR RESTORED UNIT MAP
+    private val ingredientUnits = mapOf(
+        "Milk" to "cups",
+        "Eggs" to "count",
+        "Butter" to "tbsp",
+        "Olive Oil" to "tbsp",
+        "Pasta" to "grams",
+        "Rice" to "grams",
+        "Chicken" to "grams",
+        "Beef" to "grams",
+        "Flour" to "cups",
+        "Sugar" to "cups",
+        "Salt" to "tsp",
+        "Pepper" to "tsp"
+    )
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -46,16 +61,11 @@ class IngredientsFragment : Fragment() {
         val rvAddItems = view.findViewById<RecyclerView>(R.id.rv_add_items)
         val btnViewAllStock = view.findViewById<Button>(R.id.btn_view_all_stock)
 
-        // In Stock Adapter
-        inStockAdapter = PantryInStockAdapter { item ->
-            showEditDialog(item)
-        }
+        inStockAdapter = PantryInStockAdapter { item -> showEditDialog(item) }
         rvInStock.adapter = inStockAdapter
 
-        // Add Items Adapter (initially showing common ingredients)
-        addItemsAdapter = PantryAddAdapter(commonIngredients) { name ->
-            showAddDialog(name)
-        }
+        // Revert adapter to use simple strings
+        addItemsAdapter = PantryAddAdapter(commonIngredients) { name -> showAddDialog(name) }
         rvAddItems.adapter = addItemsAdapter
 
         viewModel.pantryItems.observe(viewLifecycleOwner) { items ->
@@ -63,7 +73,6 @@ class IngredientsFragment : Fragment() {
             tvInStockTitle.text = "In Stock (${items.size})"
         }
 
-        // Observe search results from Spoonacular API
         viewModel.ingredientSearchResults.observe(viewLifecycleOwner) { results ->
             if (results.isNotEmpty()) {
                 val names = results.map { it.name.replaceFirstChar { char -> char.uppercase() } }
@@ -124,9 +133,7 @@ class IngredientsFragment : Fragment() {
 
         btnMinus.setOnClickListener {
             val current = etQty.text.toString().toDoubleOrNull() ?: 0.0
-            if (current > 0) {
-                etQty.setText((current - 1).toString())
-            }
+            if (current > 0) etQty.setText((current - 1).toString())
         }
 
         btnPlus.setOnClickListener {
@@ -146,7 +153,6 @@ class IngredientsFragment : Fragment() {
         }
 
         btnClose.setOnClickListener { dialog.dismiss() }
-
         dialog.show()
         dialog.window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
     }
@@ -165,14 +171,15 @@ class IngredientsFragment : Fragment() {
         val btnClose = dialogView.findViewById<ImageButton>(R.id.btn_close)
 
         tvName.text = name
-        tvUnit.text = "units" // Default unit
+        
+        // RESTORED AUTO-UNIT LOOKUP
+        val unit = ingredientUnits[name] ?: "units"
+        tvUnit.text = unit
         etQty.setText("1")
 
         btnMinus.setOnClickListener {
             val current = etQty.text.toString().toDoubleOrNull() ?: 0.0
-            if (current > 0) {
-                etQty.setText((current - 1).toString())
-            }
+            if (current > 0) etQty.setText((current - 1).toString())
         }
 
         btnPlus.setOnClickListener {
@@ -182,12 +189,11 @@ class IngredientsFragment : Fragment() {
 
         btnAdd.setOnClickListener {
             val qty = etQty.text.toString().toDoubleOrNull() ?: 1.0
-            viewModel.addPantryItem(name, qty, "units")
+            viewModel.addPantryItem(name, qty, unit)
             dialog.dismiss()
         }
 
         btnClose.setOnClickListener { dialog.dismiss() }
-
         dialog.show()
         dialog.window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
     }

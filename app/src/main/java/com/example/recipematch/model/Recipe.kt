@@ -61,5 +61,6 @@ data class IngredientSearchResponse(
 data class IngredientSearchResult(
     val id: Int,
     val name: String,
-    val image: String
+    val image: String,
+    val possibleUnits: List<String>? = emptyList()
 )

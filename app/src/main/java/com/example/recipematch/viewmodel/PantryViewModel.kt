@@ -21,15 +21,15 @@ import retrofit2.converter.gson.GsonConverterFactory
 class PantryViewModel : ViewModel() {
     private val pantryRepository = PantryRepository()
     private val auth = FirebaseAuth.getInstance()
-    
+
     private val retrofit = Retrofit.Builder()
         .baseUrl(Config.BASE_URL)
         .addConverterFactory(GsonConverterFactory.create())
         .build()
     private val spoonacularService = retrofit.create(SpoonacularService::class.java)
-    
+
     private val _userId = MutableLiveData<String?>()
-    
+
     private val _ingredientSearchResults = MutableLiveData<List<IngredientSearchResult>>()
     val ingredientSearchResults: LiveData<List<IngredientSearchResult>> = _ingredientSearchResults
 

@@ -4,6 +4,7 @@ import com.example.recipematch.model.Recipe
 import com.example.recipematch.model.RecipeResponse
 import com.example.recipematch.model.AnalyzedInstruction
 import com.example.recipematch.model.IngredientSearchResponse
+import com.example.recipematch.model.IngredientSearchResult
 import retrofit2.Response
 import retrofit2.http.GET
 import retrofit2.http.Path
@@ -38,6 +39,13 @@ interface SpoonacularService {
         @Query("apiKey") apiKey: String
     ): Response<List<AnalyzedInstruction>>
 
+    @GET("food/ingredients/{id}/information")
+    suspend fun getIngredientInformation(
+        @Path("id") id: Int,
+        @Query("apiKey") apiKey: String,
+        @Query("amount") amount: Double = 1.0
+    ): Response<IngredientSearchResult>
+
     @GET("food/ingredients/search")
     suspend fun searchIngredients(
         @Query("apiKey") apiKey: String,
@@ -50,5 +58,5 @@ interface SpoonacularService {
         @Query("apiKey") apiKey: String,
         @Query("query") query: String,
         @Query("number") number: Int = 15
-    ): Response<IngredientSearchResponse> // Same structure as ingredients search
+    ): Response<IngredientSearchResponse>
 }

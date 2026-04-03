@@ -95,7 +95,7 @@ class EquipmentFragment : Fragment() {
         })
 
         btnViewAllKitchen.setOnClickListener {
-            isKitchenExpanded = !isKitchenExpanded
+            isKitchenExpanded = !isStockExpanded() // Utility check or internal state
             if (isKitchenExpanded) {
                 rvInKitchen.layoutManager = GridLayoutManager(requireContext(), 2)
                 btnViewAllKitchen.text = "Show Less"
@@ -106,6 +106,11 @@ class EquipmentFragment : Fragment() {
         }
 
         return view
+    }
+
+    private fun isStockExpanded(): Boolean {
+        // Simple helper to avoid confusion with the pantry fragment logic
+        return isKitchenExpanded
     }
 
     private fun showEditDialog(item: UserEquipment) {
@@ -139,7 +144,7 @@ class EquipmentFragment : Fragment() {
         val btnAdd = dialogView.findViewById<Button>(R.id.btn_add_to_kitchen)
         val btnClose = dialogView.findViewById<ImageButton>(R.id.btn_close)
 
-        tvName.text = name
+        tvName.text = name.replaceFirstChar { it.uppercase() }
 
         btnAdd.setOnClickListener {
             viewModel.addEquipment(name)

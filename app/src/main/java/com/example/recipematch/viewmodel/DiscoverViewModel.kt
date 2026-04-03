@@ -1,22 +1,19 @@
 package com.example.recipematch.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.recipematch.model.Recipe
 import com.example.recipematch.repository.DiscoverRepository
-import com.example.recipematch.util.Config
-import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class DiscoverViewModel : ViewModel() {
 
     private val discoverRepository = DiscoverRepository()
-    private val auth = FirebaseAuth.getInstance()
-
+    
     private val _recipes = MutableLiveData<List<Recipe>>()
     val recipes: LiveData<List<Recipe>> = _recipes
 
@@ -26,42 +23,33 @@ class DiscoverViewModel : ViewModel() {
     private val _selectedRecipe = MutableLiveData<Recipe?>()
     val selectedRecipe: LiveData<Recipe?> = _selectedRecipe
 
-    private var currentQuery: String? = null
-    private var currentCuisine: String? = null
-    private var currentDiet: String? = null
-    private var currentType: String? = null
-    
     private var searchJob: Job? = null
 
     fun searchRecipes(
-        query: String? = currentQuery,
-        cuisine: String? = currentCuisine,
-        diet: String? = currentDiet,
-        type: String? = currentType
+        query: String? = null,
+        cuisine: String? = null,
+        diet: String? = null,
+        type: String? = null
     ) {
-        // Only trigger search if parameters have actually changed
-        if (query == currentQuery && cuisine == currentCuisine && diet == currentDiet && type == currentType && _recipes.value != null) {
-            return
-        }
-
-        currentQuery = query
-        currentCuisine = cuisine
-        currentDiet = diet
-        currentType = type
-
         searchJob?.cancel()
         searchJob = viewModelScope.launch {
-            // Debounce search to avoid too many API calls while typing
-            delay(500)
-            
             _isLoading.value = true
+            Log.d("DiscoverViewModel", "Starting search for: $query")
+            
             val results = discoverRepository.searchRecipes(
                 query = query,
                 cuisine = cuisine,
                 diet = diet,
                 type = type
             )
-            _recipes.postValue(results ?: emptyList())
+            
+            if (results != null) {
+                Log.d("DiscoverViewModel", "Search successful: ${results.size} recipes found")
+                _recipes.postValue(results)
+            } else {
+                Log.e("DiscoverViewModel", "Search failed - results are null")
+                _recipes.postValue(emptyList())
+            }
             _isLoading.postValue(false)
         }
     }
@@ -73,9 +61,5 @@ class DiscoverViewModel : ViewModel() {
             _selectedRecipe.postValue(details)
             _isLoading.postValue(false)
         }
-    }
-    
-    fun selectRecipe(recipe: Recipe?) {
-        _selectedRecipe.value = recipe
     }
 }

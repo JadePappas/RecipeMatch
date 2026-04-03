@@ -7,6 +7,7 @@ data class RecipeAttempt(
     val id: String = "",
     val userId: String = "",
     val recipeApiId: String = "",
+    val recipeTitle: String = "",
     val notes: String = "",
     val photoUri: String = "",
     val dateCompleted: String = ""
