@@ -62,4 +62,8 @@ class DiscoverViewModel : ViewModel() {
             _isLoading.postValue(false)
         }
     }
+
+    fun selectRecipe(recipe: Recipe?) {
+        _selectedRecipe.value = recipe
+    }
 }
