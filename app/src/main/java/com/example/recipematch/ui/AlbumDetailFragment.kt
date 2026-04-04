@@ -99,12 +99,17 @@ class AlbumDetailFragment : Fragment() {
         discoverViewModel = ViewModelProvider(requireActivity()).get(DiscoverViewModel::class.java)
 
         val btnBack = view.findViewById<ImageButton>(R.id.btn_album_back)
+        val btnDelete = view.findViewById<ImageButton>(R.id.btn_delete_album)
         val tvTitle = view.findViewById<TextView>(R.id.tv_album_detail_title)
         val rvRecipes = view.findViewById<RecyclerView>(R.id.rv_album_recipes)
         detailContainer = view.findViewById(R.id.album_recipe_detail_container)
 
         tvTitle.text = albumName ?: "Album Details"
         btnBack.setOnClickListener { parentFragmentManager.popBackStack() }
+
+        btnDelete.setOnClickListener {
+            showDeleteConfirmation()
+        }
 
         rvRecipes.layoutManager = GridLayoutManager(requireContext(), 2)
         recipeAdapter = RecipeAdapter { recipe -> showRecipeDetail(recipe) }
@@ -121,6 +126,21 @@ class AlbumDetailFragment : Fragment() {
         if (recipeIds.isNotEmpty()) albumViewModel.fetchRecipesForAlbum(recipeIds)
 
         return view
+    }
+
+    private fun showDeleteConfirmation() {
+        AlertDialog.Builder(requireContext())
+            .setTitle("Delete Album")
+            .setMessage("Are you sure you want to delete this album? This action cannot be undone.")
+            .setPositiveButton("Delete") { _, _ ->
+                albumId?.let {
+                    albumViewModel.deleteAlbum(it)
+                    parentFragmentManager.popBackStack()
+                    Toast.makeText(context, "Album deleted", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     private fun showRecipeDetail(recipe: Recipe) {

@@ -53,4 +53,8 @@ class AlbumViewModel : ViewModel() {
             _albumRecipes.postValue(recipeList)
         }
     }
+
+    fun deleteAlbum(albumId: String) {
+        repository.deleteAlbum(albumId) { _ -> }
+    }
 }
