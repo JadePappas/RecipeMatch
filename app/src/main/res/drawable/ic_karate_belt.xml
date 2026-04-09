@@ -1,0 +1,19 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="200dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Horizontal Belt Part with Black Outline -->
+    <path
+        android:id="@+id/belt_path"
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#000000"
+        android:strokeWidth="0.8"
+        android:pathData="M4,14 L20,14 L20,17 L4,17 Z" />
+    <!-- Center Knot with Black Outline -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#000000"
+        android:strokeWidth="0.8"
+        android:pathData="M10,14 L14,14 L15,19 L9,19 Z" />
+</vector>

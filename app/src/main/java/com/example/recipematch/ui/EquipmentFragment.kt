@@ -1,30 +1,41 @@
 package com.example.recipematch.ui
 
+import android.app.Dialog
 import android.os.Bundle
-import android.util.Log
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
-import android.widget.EditText
-import android.widget.TextView
-import android.widget.Toast
+import android.widget.*
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
+import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.example.recipematch.R
 import com.example.recipematch.model.UserEquipment
-import com.example.recipematch.viewmodel.UserEquipmentViewModel
+import com.example.recipematch.viewmodel.PantryViewModel
 
 class EquipmentFragment : Fragment() {
 
-    private val tag = "EquipmentFragment"
-    private lateinit var viewModel: UserEquipmentViewModel
-    private var lastItems: List<UserEquipment> = emptyList()
+    private lateinit var viewModel: PantryViewModel
+    private lateinit var inKitchenAdapter: EquipmentInStockAdapter
+    private lateinit var addEquipmentAdapter: PantryAddAdapter
+    
+    private lateinit var tvInKitchenTitle: TextView
+    private lateinit var tvAddItemsTitle: TextView
+    private lateinit var rvInKitchen: RecyclerView
+    private var isKitchenExpanded = false
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        viewModel = ViewModelProvider(this).get(UserEquipmentViewModel::class.java)
-    }
+    private val commonEquipment = listOf(
+        "Frying Pan", "Saucepan", "Stock Pot", "Baking Sheet", "Oven Mitts",
+        "Spatula", "Whisk", "Chef's Knife", "Cutting Board", "Measuring Cups",
+        "Measuring Spoons", "Mixing Bowl", "Colander", "Tongs", "Blender",
+        "Food Processor", "Toaster", "Microwave", "Air Fryer", "Slow Cooker",
+        "Dutch Oven", "Cast Iron Skillet", "Muffin Tin", "Cake Pan", "Rolling Pin",
+        "Garlic Press", "Grater", "Peeler", "Hand Mixer", "Kitchen Scale"
+    )
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -32,48 +43,103 @@ class EquipmentFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View? {
         val view = inflater.inflate(R.layout.equipment_fragment, container, false)
+        viewModel = ViewModelProvider(requireActivity()).get(PantryViewModel::class.java)
 
-        val editName = view.findViewById<EditText>(R.id.edit_equipment_name)
-        val itemsTextView = view.findViewById<TextView>(R.id.equipment_items_list)
+        tvInKitchenTitle = view.findViewById(R.id.tv_in_kitchen_title)
+        tvAddItemsTitle = view.findViewById(R.id.tv_add_items_title)
+        rvInKitchen = view.findViewById(R.id.rv_in_kitchen)
+        val rvAddEquipment = view.findViewById<RecyclerView>(R.id.rv_add_equipment)
+        val btnViewAllKitchen = view.findViewById<Button>(R.id.btn_view_all_kitchen)
 
-        val btnAdd = view.findViewById<Button>(R.id.btn_add_equip)
-        val btnUpdate = view.findViewById<Button>(R.id.btn_update_equip)
-        val btnDelete = view.findViewById<Button>(R.id.btn_delete_equip)
+        inKitchenAdapter = EquipmentInStockAdapter { item -> showEditDialog(item) }
+        rvInKitchen.adapter = inKitchenAdapter
 
-        btnAdd.setOnClickListener {
-            val name = editName.text.toString()
-            if (name.isNotEmpty()) {
-                viewModel.addEquipmentItem(name)
-                editName.setText("")
-                Toast.makeText(context, "Added $name", Toast.LENGTH_SHORT).show()
+        addEquipmentAdapter = PantryAddAdapter(commonEquipment) { name -> showAddDialog(name) }
+        rvAddEquipment.adapter = addEquipmentAdapter
+        tvAddItemsTitle.text = "Common Equipment"
+
+        viewModel.equipment.observe(viewLifecycleOwner) { items ->
+            inKitchenAdapter.submitList(items)
+            tvInKitchenTitle.text = "In Kitchen (${items.size})"
+        }
+
+        viewModel.equipmentSearchResults.observe(viewLifecycleOwner) { results ->
+            if (results.isNotEmpty()) {
+                val names = results.map { it.name.replaceFirstChar { char -> char.uppercase() } }
+                addEquipmentAdapter.updateItems(names)
+                tvAddItemsTitle.text = "Search Results (${names.size})"
+            } else {
+                addEquipmentAdapter.updateItems(commonEquipment)
+                tvAddItemsTitle.text = "Common Equipment"
             }
         }
 
-        btnUpdate.setOnClickListener {
-            val name = editName.text.toString()
-            val itemToUpdate = lastItems.find { it.equipmentName == name }
-            if (itemToUpdate != null) {
-                viewModel.updateEquipmentItem(itemToUpdate)
-                Toast.makeText(context, "Updated $name", Toast.LENGTH_SHORT).show()
+        val searchBar = view.findViewById<EditText>(R.id.search_equipment)
+        searchBar.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                val query = s.toString()
+                if (query.length > 2) {
+                    viewModel.searchEquipment(query)
+                } else if (query.isEmpty()) {
+                    addEquipmentAdapter.updateItems(commonEquipment)
+                    tvAddItemsTitle.text = "Common Equipment"
+                }
             }
-        }
+            override fun afterTextChanged(s: Editable?) {}
+        })
 
-        btnDelete.setOnClickListener {
-            val name = editName.text.toString()
-            val itemToDelete = lastItems.find { it.equipmentName == name }
-            if (itemToDelete != null) {
-                viewModel.deleteEquipmentItem(itemToDelete.id)
-                Toast.makeText(context, "Deleted $name", Toast.LENGTH_SHORT).show()
-                editName.setText("")
+        btnViewAllKitchen.setOnClickListener {
+            isKitchenExpanded = !isKitchenExpanded
+            if (isKitchenExpanded) {
+                rvInKitchen.layoutManager = GridLayoutManager(requireContext(), 2)
+                btnViewAllKitchen.text = "Show Less"
+            } else {
+                rvInKitchen.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
+                btnViewAllKitchen.text = "View All"
             }
-        }
-
-        viewModel.equipmentItems.observe(viewLifecycleOwner) { items ->
-            lastItems = items
-            val displayString = items.joinToString("\n") { it.equipmentName }
-            itemsTextView.text = if (items.isEmpty()) "No equipment added" else displayString
         }
 
         return view
+    }
+
+    private fun showEditDialog(item: UserEquipment) {
+        val dialog = Dialog(requireContext())
+        val dialogView = layoutInflater.inflate(R.layout.dialog_edit_equipment, null)
+        dialog.setContentView(dialogView)
+
+        val tvName = dialogView.findViewById<TextView>(R.id.tv_item_name)
+        val btnDelete = dialogView.findViewById<ImageButton>(R.id.btn_delete)
+        val btnClose = dialogView.findViewById<ImageButton>(R.id.btn_close)
+
+        tvName.text = item.equipmentName
+        btnDelete.setOnClickListener {
+            viewModel.deleteEquipment(item.id)
+            dialog.dismiss()
+        }
+        btnClose.setOnClickListener { dialog.dismiss() }
+
+        dialog.show()
+        dialog.window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+    }
+
+    private fun showAddDialog(name: String) {
+        val dialog = Dialog(requireContext())
+        val dialogView = layoutInflater.inflate(R.layout.dialog_add_equipment, null)
+        dialog.setContentView(dialogView)
+
+        val tvName = dialogView.findViewById<TextView>(R.id.tv_item_name)
+        val btnAdd = dialogView.findViewById<Button>(R.id.btn_add_to_kitchen)
+        val btnClose = dialogView.findViewById<ImageButton>(R.id.btn_close)
+
+        tvName.text = name
+        btnAdd.setOnClickListener {
+            viewModel.addEquipment(name)
+            dialog.dismiss()
+        }
+        btnClose.setOnClickListener { dialog.dismiss() }
+
+        dialog.show()
+        dialog.window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
     }
 }
