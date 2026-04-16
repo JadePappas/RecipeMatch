@@ -7,7 +7,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthRecentLoginRequiredException
 import kotlinx.coroutines.launch
 
-class UserViewModel : ViewModel() {
+class UserViewModel(private val savedStateHandle: SavedStateHandle) : ViewModel() {
     private val auth = FirebaseAuth.getInstance()
     private val repository = UserRepository()
 
@@ -32,9 +32,6 @@ class UserViewModel : ViewModel() {
     val passwordUpdateMessage: LiveData<String?> = _passwordUpdateMessage
 
     companion object {
-        /**
-         * Pure logic for belt titles, moved to companion for testability.
-         */
         fun getBeltTitle(level: Int): String {
             return when (level) {
                 1 -> "White Belt"
@@ -49,9 +46,6 @@ class UserViewModel : ViewModel() {
             }
         }
 
-        /**
-         * Pure logic for XP calculation, moved to companion for testability.
-         */
         fun calculateProgress(user: User, xpAmount: Int): User {
             var newXp = user.xp + xpAmount
             var newLevel = user.levelNumber
