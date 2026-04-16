@@ -24,6 +24,7 @@
                 android:layout_height="48dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@android:drawable/ic_menu_revert"
+                android:contentDescription="Go back"
                 app:tint="@android:color/black" />
 
             <TextView
@@ -53,7 +54,8 @@
                 android:backgroundTint="#2196F3"
                 android:text="Save to Album"
                 android:textAllCaps="false"
-                android:textColor="@android:color/white" />
+                android:textColor="@android:color/white"
+                android:contentDescription="Save this recipe to an album" />
         </LinearLayout>
 
         <ImageView
@@ -61,21 +63,25 @@
             android:layout_width="match_parent"
             android:layout_height="250dp"
             android:layout_marginTop="16dp"
-            android:scaleType="centerCrop" />
+            android:scaleType="centerCrop"
+            android:contentDescription="Photo of the prepared dish" />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:padding="16dp"
-            android:weightSum="3">
+            android:weightSum="3"
+            android:importantForAccessibility="yes"
+            android:focusable="true">
 
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:gravity="center"
-                android:orientation="vertical">
+                android:orientation="vertical"
+                android:importantForAccessibility="no">
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Time" android:textSize="12sp" />
                 <TextView android:id="@+id/tv_detail_time" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="30 min" android:textStyle="bold" />
             </LinearLayout>
@@ -85,7 +91,8 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:gravity="center"
-                android:orientation="vertical">
+                android:orientation="vertical"
+                android:importantForAccessibility="no">
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Servings" android:textSize="12sp" />
                 <TextView android:id="@+id/tv_detail_servings" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="4" android:textStyle="bold" />
             </LinearLayout>
@@ -95,7 +102,8 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:gravity="center"
-                android:orientation="vertical">
+                android:orientation="vertical"
+                android:importantForAccessibility="no">
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Rating" android:textSize="12sp" />
                 <TextView android:id="@+id/tv_detail_rating" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="★ 4.5" android:textStyle="bold" />
             </LinearLayout>
@@ -173,7 +181,10 @@
             app:cardCornerRadius="12dp"
             app:cardElevation="2dp"
             app:strokeColor="#EEEEEE"
-            app:strokeWidth="1dp">
+            app:strokeWidth="1dp"
+            android:focusable="true"
+            android:clickable="true"
+            android:contentDescription="Add a photo of your dish">
 
             <FrameLayout
                 android:layout_width="match_parent"
@@ -184,7 +195,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:scaleType="centerCrop"
-                    android:visibility="gone" />
+                    android:visibility="gone"
+                    android:contentDescription="Photo of your attempt" />
 
                 <LinearLayout
                     android:id="@+id/ll_add_photo_placeholder"
@@ -192,7 +204,8 @@
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
                     android:gravity="center"
-                    android:orientation="vertical">
+                    android:orientation="vertical"
+                    android:importantForAccessibility="no">
 
                     <ImageView
                         android:layout_width="48dp"
@@ -226,6 +239,7 @@
                 android:layout_weight="1"
                 android:background="@android:drawable/editbox_background"
                 android:hint="Add notes about your attempt..."
+                android:importantForAutofill="no"
                 android:inputType="textMultiLine"
                 android:minLines="1"
                 android:maxLines="5"
@@ -240,6 +254,7 @@
                 android:layout_marginStart="8dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@android:drawable/ic_menu_save"
+                android:contentDescription="Save notes"
                 app:tint="#2196F3" />
         </LinearLayout>
 
@@ -251,7 +266,8 @@
             android:backgroundTint="#4CAF50"
             android:text="Mark as Completed"
             android:textAllCaps="false"
-            android:textColor="@android:color/white" />
+            android:textColor="@android:color/white"
+            android:contentDescription="Mark recipe as completed" />
 
     </LinearLayout>
 </androidx.core.widget.NestedScrollView>

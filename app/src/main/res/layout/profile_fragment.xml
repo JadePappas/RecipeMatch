@@ -22,12 +22,15 @@
                 android:layout_height="wrap_content"
                 android:layout_centerHorizontal="true"
                 android:gravity="center"
-                android:orientation="vertical">
+                android:orientation="vertical"
+                android:focusable="true"
+                android:contentDescription="User profile information">
 
                 <!-- Layered Karate Gi Icon -->
                 <FrameLayout
                     android:layout_width="100dp"
-                    android:layout_height="100dp">
+                    android:layout_height="100dp"
+                    android:importantForAccessibility="noHideDescendants">
 
                     <ImageView
                         android:id="@+id/gi_body"
@@ -69,7 +72,8 @@
                 android:layout_alignParentEnd="true"
                 android:layout_alignParentTop="true"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_settings" />
+                android:src="@drawable/ic_settings"
+                android:contentDescription="Settings" />
         </RelativeLayout>
 
         <!-- XP Progress Card -->
@@ -78,7 +82,8 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="24dp"
             app:cardCornerRadius="12dp"
-            app:cardElevation="2dp">
+            app:cardElevation="2dp"
+            android:focusable="true">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -101,7 +106,8 @@
                     android:layout_height="8dp"
                     android:layout_marginTop="8dp"
                     android:progress="95"
-                    android:progressTint="#2196F3" />
+                    android:progressTint="#2196F3"
+                    android:contentDescription="XP progress bar" />
 
                 <TextView
                     android:id="@+id/next_level_text"
@@ -143,7 +149,11 @@
                 android:layout_alignParentEnd="true"
                 android:layout_centerVertical="true"
                 android:text="see all"
-                android:textColor="#2196F3" />
+                android:textColor="#2196F3"
+                android:focusable="true"
+                android:clickable="true"
+                android:background="?attr/selectableItemBackground"
+                android:contentDescription="See all achievements" />
         </RelativeLayout>
 
         <!-- Centered Achievement List -->
@@ -171,7 +181,8 @@
                 <ImageView
                     android:layout_width="20dp"
                     android:layout_height="20dp"
-                    android:src="@drawable/ic_clock" />
+                    android:src="@drawable/ic_clock"
+                    android:importantForAccessibility="no" />
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -189,7 +200,11 @@
                 android:layout_alignParentEnd="true"
                 android:layout_centerVertical="true"
                 android:text="see all"
-                android:textColor="#2196F3" />
+                android:textColor="#2196F3"
+                android:focusable="true"
+                android:clickable="true"
+                android:background="?attr/selectableItemBackground"
+                android:contentDescription="See all cooking history" />
         </RelativeLayout>
 
         <androidx.recyclerview.widget.RecyclerView
@@ -227,7 +242,8 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="+ New Album"
-                    android:textColor="#2196F3" />
+                    android:textColor="#2196F3"
+                    android:contentDescription="Create new album" />
 
                 <TextView
                     android:id="@+id/see_all_albums"
@@ -235,7 +251,11 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
                     android:text="see all"
-                    android:textColor="#2196F3" />
+                    android:textColor="#2196F3"
+                    android:focusable="true"
+                    android:clickable="true"
+                    android:background="?attr/selectableItemBackground"
+                    android:contentDescription="See all albums" />
             </LinearLayout>
         </RelativeLayout>
 

@@ -34,7 +34,9 @@
             android:layout_weight="1"
             android:background="@android:drawable/editbox_background"
             android:hint="Search by name..."
-            android:padding="12dp" />
+            android:padding="12dp"
+            android:importantForAutofill="no"
+            android:inputType="text" />
 
         <ImageButton
             android:id="@+id/btn_search_discover"
@@ -42,7 +44,8 @@
             android:layout_height="48dp"
             android:layout_marginStart="8dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@android:drawable/ic_menu_search" />
+            android:src="@android:drawable/ic_menu_search"
+            android:contentDescription="Search" />
     </LinearLayout>
 
     <HorizontalScrollView
@@ -130,7 +133,8 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        android:contentDescription="Loading recipes" />
 
     <FrameLayout
         android:id="@+id/recipe_detail_container"

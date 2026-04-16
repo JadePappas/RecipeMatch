@@ -20,7 +20,8 @@
             android:layout_alignParentStart="true"
             android:layout_centerVertical="true"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@drawable/ic_back" />
+            android:src="@drawable/ic_back"
+            android:contentDescription="Go back" />
 
         <TextView
             android:layout_width="wrap_content"
@@ -50,6 +51,7 @@
                 android:layout_marginBottom="32dp"
                 android:src="@drawable/ic_profile"
                 android:scaleType="centerCrop"
+                android:contentDescription="Profile picture"
                 app:shapeAppearanceOverlay="@style/CircleShape" />
 
             <!-- Edit Fields -->
@@ -62,7 +64,9 @@
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/edit_display_name"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content" />
+                    android:layout_height="wrap_content"
+                    android:importantForAutofill="no"
+                    android:inputType="textPersonName" />
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.textfield.TextInputLayout
@@ -75,6 +79,7 @@
                     android:id="@+id/edit_email"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:importantForAutofill="no"
                     android:inputType="textEmailAddress" />
             </com.google.android.material.textfield.TextInputLayout>
 
@@ -84,14 +89,16 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Change Password"
-                android:layout_marginBottom="24dp"/>
+                android:layout_marginBottom="24dp"
+                android:contentDescription="Change password" />
 
             <Button
                 android:id="@+id/btn_save_settings"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Save Changes"
-                android:layout_marginBottom="16dp"/>
+                android:layout_marginBottom="16dp"
+                android:contentDescription="Save profile changes" />
 
             <Button
                 android:id="@+id/btn_logout"
@@ -99,8 +106,9 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Logout"
-                android:textColor="@android:color/holo_red_light"
-                android:textStyle="bold" />
+                android:textColor="#D32F2F"
+                android:textStyle="bold"
+                android:contentDescription="Logout of account" />
 
         </LinearLayout>
     </ScrollView>
