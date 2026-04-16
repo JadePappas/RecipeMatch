@@ -3,18 +3,14 @@ package com.example.recipematch.ui
 import android.Manifest
 import android.app.Activity
 import android.app.AlertDialog
-import android.app.Dialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.view.Window
-import android.view.inputmethod.InputMethodManager
 import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
@@ -58,13 +54,11 @@ class DiscoverFragment : Fragment() {
     private val auth = FirebaseAuth.getInstance()
     private var currentAttempt: RecipeAttempt? = null
 
-    // RESTORED: These variables are needed for the camera and photo preview to work
     private var currentPhotoUri: Uri? = null
     private var ivAttemptPreview: ImageView? = null
     private var photoPlaceholder: View? = null
     private var etAttemptNotes: EditText? = null
 
-    // Track the last processed list to handle incremental sorting
     private var lastProcessedRecipes: List<Recipe> = emptyList()
 
     private val cameraLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -191,6 +185,9 @@ class DiscoverFragment : Fragment() {
         detailContainer.removeAllViews()
         detailContainer.addView(detailView)
 
+        currentAttempt = null
+        currentPhotoUri = null
+
         val btnBack = detailView.findViewById<ImageButton>(R.id.btn_back)
         val tvName = detailView.findViewById<TextView>(R.id.tv_detail_recipe_name)
         val ivImage = detailView.findViewById<ImageView>(R.id.iv_detail_image)
@@ -207,6 +204,7 @@ class DiscoverFragment : Fragment() {
         val cvAddPhoto = detailView.findViewById<View>(R.id.cv_add_photo)
         val btnSaveAttempt = detailView.findViewById<Button>(R.id.btn_save_attempt)
         val btnSaveToAlbum = detailView.findViewById<Button>(R.id.btn_save_to_album)
+        val btnSaveNotes = detailView.findViewById<ImageButton>(R.id.btn_save_notes)
 
         btnBack.setOnClickListener { detailContainer.visibility = View.GONE }
         btnSaveToAlbum.setOnClickListener { showAlbumSelectionDialog(recipe) }
@@ -230,6 +228,15 @@ class DiscoverFragment : Fragment() {
         btnSaveAttempt.setOnClickListener {
             if (currentAttempt == null) saveNewAttempt(recipe, btnSaveAttempt)
             else showUnmarkConfirmation(btnSaveAttempt)
+        }
+
+        btnSaveNotes.setOnClickListener {
+            if (currentAttempt != null) {
+                saveNewAttempt(recipe, btnSaveAttempt)
+                Toast.makeText(context, "Notes updated", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(context, "Mark as completed to save notes!", Toast.LENGTH_SHORT).show()
+            }
         }
 
         tvName.text = recipe.title
@@ -314,6 +321,8 @@ class DiscoverFragment : Fragment() {
                     setCompletedUI(button)
                     Toast.makeText(context, "Recipe Completed! +100 XP", Toast.LENGTH_SHORT).show()
                 }
+            } else {
+                Toast.makeText(context, "Failed to save attempt", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -329,6 +338,8 @@ class DiscoverFragment : Fragment() {
                 etAttemptNotes?.setText("")
                 setUncompletedUI(button)
                 Toast.makeText(context, "Attempt deleted", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(context, "Failed to delete attempt", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -342,7 +353,7 @@ class DiscoverFragment : Fragment() {
                 val btnStatus = item.findViewById<Button>(R.id.btn_ingredient_status)
                 val userHas = pantryViewModel.pantryItems.value?.any { ingredient.name.contains(it.ingredientName, true) || it.ingredientName.contains(ingredient.name, true) } ?: false
                 btnStatus.text = if (userHas) "In Stock" else "Need to buy"
-                btnStatus.setBackgroundColor(resources.getColor(if (userHas) android.R.color.holo_green_light else android.R.color.holo_red_light, null))
+                btnStatus.setBackgroundColor(ContextCompat.getColor(requireContext(), if (userHas) android.R.color.holo_green_light else android.R.color.holo_red_light))
                 ingContainer.addView(item)
             }
         }
@@ -354,7 +365,7 @@ class DiscoverFragment : Fragment() {
             val btnStatus = item.findViewById<Button>(R.id.btn_ingredient_status)
             val userHas = pantryViewModel.equipment.value?.any { eq.name.contains(it.equipmentName, true) || it.equipmentName.contains(eq.name, true) } ?: false
             btnStatus.text = if (userHas) "In Kitchen" else "Missing"
-            btnStatus.setBackgroundColor(resources.getColor(if (userHas) android.R.color.holo_green_light else android.R.color.holo_red_light, null))
+            btnStatus.setBackgroundColor(ContextCompat.getColor(requireContext(), if (userHas) android.R.color.holo_green_light else android.R.color.holo_red_light))
             eqContainer.addView(item)
         }
         insContainer.removeAllViews()

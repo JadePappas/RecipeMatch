@@ -3,7 +3,6 @@ package com.example.recipematch.ui
 import android.Manifest
 import android.app.Activity
 import android.app.AlertDialog
-import android.app.Dialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -13,7 +12,6 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.view.Window
 import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
@@ -52,6 +50,22 @@ class HomeFragment : Fragment() {
     private val attemptRepo = RecipeAttemptRepository()
     private val auth = FirebaseAuth.getInstance()
     private var currentAttempt: RecipeAttempt? = null
+
+    private var currentPhotoUri: Uri? = null
+    private var ivAttemptPreview: ImageView? = null
+    private var photoPlaceholder: View? = null
+    private var etAttemptNotes: EditText? = null
+
+    private val cameraLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            updatePhotoPreview(currentPhotoUri)
+        }
+    }
+
+    private val permissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+        if (isGranted) openCamera()
+        else Toast.makeText(context, "Camera permission required", Toast.LENGTH_SHORT).show()
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -168,36 +182,104 @@ class HomeFragment : Fragment() {
         detailContainer.removeAllViews()
         detailContainer.addView(detailView)
 
-        detailView.findViewById<ImageButton>(R.id.btn_back).setOnClickListener { 
-            detailContainer.visibility = View.GONE 
-        }
+        currentAttempt = null
+        currentPhotoUri = null
 
-        detailView.findViewById<TextView>(R.id.tv_detail_recipe_name).text = recipe.title
-        detailView.findViewById<TextView>(R.id.tv_detail_time).text = "${recipe.readyInMinutes} min"
-        detailView.findViewById<TextView>(R.id.tv_detail_servings).text = recipe.servings.toString()
-        detailView.findViewById<TextView>(R.id.tv_detail_rating).text = "★ ${String.format("%.1f", recipe.spoonacularScore / 20.0)}"
-        Glide.with(this).load(recipe.image).into(detailView.findViewById(R.id.iv_detail_image))
+        val btnBack = detailView.findViewById<ImageButton>(R.id.btn_back)
+        val tvName = detailView.findViewById<TextView>(R.id.tv_detail_recipe_name)
+        val ivImage = detailView.findViewById<ImageView>(R.id.iv_detail_image)
+        val tvTime = detailView.findViewById<TextView>(R.id.tv_detail_time)
+        val tvServings = detailView.findViewById<TextView>(R.id.tv_detail_servings)
+        val tvRating = detailView.findViewById<TextView>(R.id.tv_detail_rating)
+        val ingredientsContainer = detailView.findViewById<LinearLayout>(R.id.ll_ingredients_container)
+        val equipmentContainer = detailView.findViewById<LinearLayout>(R.id.ll_equipment_container)
+        val instructionsContainer = detailView.findViewById<LinearLayout>(R.id.ll_instructions_container)
 
-        populateIngredientsAndInstructions(recipe, detailView)
-        
-        detailView.findViewById<Button>(R.id.btn_save_to_album).setOnClickListener {
-            showAlbumSelectionDialog(recipe)
-        }
-        
+        ivAttemptPreview = detailView.findViewById(R.id.iv_attempt_photo)
+        photoPlaceholder = detailView.findViewById(R.id.ll_add_photo_placeholder)
+        etAttemptNotes = detailView.findViewById(R.id.et_attempt_notes)
+        val cvAddPhoto = detailView.findViewById<View>(R.id.cv_add_photo)
         val btnSaveAttempt = detailView.findViewById<Button>(R.id.btn_save_attempt)
+        val btnSaveToAlbum = detailView.findViewById<Button>(R.id.btn_save_to_album)
+        val btnSaveNotes = detailView.findViewById<ImageButton>(R.id.btn_save_notes)
+
+        btnBack.setOnClickListener { detailContainer.visibility = View.GONE }
+        btnSaveToAlbum.setOnClickListener { showAlbumSelectionDialog(recipe) }
+        cvAddPhoto.setOnClickListener { checkCameraPermission() }
+
         val userId = auth.currentUser?.uid
         if (userId != null) {
             viewLifecycleOwner.lifecycleScope.launch {
                 currentAttempt = attemptRepo.getRecipeAttempt(userId, recipe.id.toString())
                 if (currentAttempt != null) {
-                    btnSaveAttempt.text = "Completed"
-                    btnSaveAttempt.setBackgroundColor(ContextCompat.getColor(requireContext(), android.R.color.darker_gray))
+                    setCompletedUI(btnSaveAttempt)
+                    etAttemptNotes?.setText(currentAttempt!!.notes)
+                    if (currentAttempt!!.photoUri.isNotEmpty()) updatePhotoPreview(Uri.parse(currentAttempt!!.photoUri))
+                } else {
+                    setUncompletedUI(btnSaveAttempt)
+                    etAttemptNotes?.setText("")
                 }
             }
         }
 
         btnSaveAttempt.setOnClickListener {
-            saveNewAttempt(recipe, btnSaveAttempt)
+            if (currentAttempt == null) saveNewAttempt(recipe, btnSaveAttempt)
+            else showUnmarkConfirmation(btnSaveAttempt)
+        }
+
+        btnSaveNotes.setOnClickListener {
+            if (currentAttempt != null) {
+                saveNewAttempt(recipe, btnSaveAttempt) // Re-saves with updated notes
+                Toast.makeText(context, "Notes updated", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(context, "Mark as completed to save notes!", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        tvName.text = recipe.title
+        tvTime.text = "${recipe.readyInMinutes} min"
+        tvServings.text = recipe.servings.toString()
+        tvRating.text = "★ ${String.format("%.1f", recipe.spoonacularScore / 20.0)}"
+        Glide.with(this).load(recipe.image).into(ivImage)
+
+        populateDetails(recipe, ingredientsContainer, equipmentContainer, instructionsContainer)
+        
+        discoverViewModel.selectedRecipe.observe(viewLifecycleOwner) { updated ->
+            if (updated?.id == recipe.id) populateDetails(updated, ingredientsContainer, equipmentContainer, instructionsContainer)
+        }
+        discoverViewModel.getRecipeDetails(recipe.id)
+    }
+
+    private fun populateDetails(recipe: Recipe, ingContainer: LinearLayout, eqContainer: LinearLayout, insContainer: LinearLayout) {
+        if (recipe.extendedIngredients != null) {
+            ingContainer.removeAllViews()
+            recipe.extendedIngredients.forEach { ingredient ->
+                val item = layoutInflater.inflate(R.layout.item_recipe_ingredient, ingContainer, false)
+                item.findViewById<TextView>(R.id.tv_ingredient_name).text = ingredient.original
+                val btnStatus = item.findViewById<Button>(R.id.btn_ingredient_status)
+                val userHas = pantryViewModel.pantryItems.value?.any { ingredient.name.contains(it.ingredientName, true) || it.ingredientName.contains(ingredient.name, true) } ?: false
+                btnStatus.text = if (userHas) "In Stock" else "Need to buy"
+                btnStatus.setBackgroundColor(ContextCompat.getColor(requireContext(), if (userHas) android.R.color.holo_green_light else android.R.color.holo_red_light))
+                ingContainer.addView(item)
+            }
+        }
+        val recipeEquipment = recipe.analyzedInstructions?.flatMap { it.steps }?.flatMap { it.equipment ?: emptyList() }?.distinctBy { it.id } ?: emptyList()
+        eqContainer.removeAllViews()
+        recipeEquipment.forEach { eq ->
+            val item = layoutInflater.inflate(R.layout.item_recipe_ingredient, eqContainer, false)
+            item.findViewById<TextView>(R.id.tv_ingredient_name).text = eq.name.replaceFirstChar { it.uppercase() }
+            val btnStatus = item.findViewById<Button>(R.id.btn_ingredient_status)
+            val userHas = pantryViewModel.equipment.value?.any { eq.name.contains(it.equipmentName, true) || it.equipmentName.contains(eq.name, true) } ?: false
+            btnStatus.text = if (userHas) "In Kitchen" else "Missing"
+            btnStatus.setBackgroundColor(ContextCompat.getColor(requireContext(), if (userHas) android.R.color.holo_green_light else android.R.color.holo_red_light))
+            eqContainer.addView(item)
+        }
+        insContainer.removeAllViews()
+        recipe.analyzedInstructions?.firstOrNull()?.steps?.forEach { step ->
+            val stepView = layoutInflater.inflate(R.layout.item_instruction_step, insContainer, false)
+            stepView.findViewById<TextView>(R.id.tv_step_number).text = "${step.number}."
+            stepView.findViewById<TextView>(R.id.tv_step_description).text = step.step
+            insContainer.addView(stepView)
         }
     }
 
@@ -214,39 +296,77 @@ class HomeFragment : Fragment() {
         }.setNegativeButton("Cancel", null).show()
     }
 
+    private fun showUnmarkConfirmation(button: Button) {
+        AlertDialog.Builder(requireContext())
+            .setTitle("Unmark as Completed?")
+            .setMessage("This will permanently delete your photo and notes for this attempt.")
+            .setPositiveButton("Unmark") { _, _ -> deleteAttempt(button) }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun setCompletedUI(button: Button) {
+        button.text = "Completed"
+        button.setBackgroundColor(ContextCompat.getColor(requireContext(), android.R.color.darker_gray))
+    }
+
+    private fun setUncompletedUI(button: Button) {
+        button.text = "Mark as Completed"
+        button.setBackgroundColor(ContextCompat.getColor(requireContext(), android.R.color.holo_green_light))
+    }
+
+    private fun updatePhotoPreview(uri: Uri?) {
+        if (uri != null) {
+            ivAttemptPreview?.visibility = View.VISIBLE
+            photoPlaceholder?.visibility = View.GONE
+            ivAttemptPreview?.setImageURI(uri)
+            currentPhotoUri = uri
+        }
+    }
+
+    private fun checkCameraPermission() {
+        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) openCamera()
+        else permissionLauncher.launch(Manifest.permission.CAMERA)
+    }
+
+    private fun openCamera() {
+        val photoFile = File(requireContext().filesDir, "attempt_${System.currentTimeMillis()}.jpg")
+        currentPhotoUri = FileProvider.getUriForFile(requireContext(), "${requireContext().packageName}.fileprovider", photoFile)
+        val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE).apply { putExtra(MediaStore.EXTRA_OUTPUT, currentPhotoUri) }
+        cameraLauncher.launch(intent)
+    }
+
     private fun saveNewAttempt(recipe: Recipe, button: Button) {
         val userId = auth.currentUser?.uid ?: return
         val attempt = RecipeAttempt(
             userId = userId, recipeApiId = recipe.id.toString(), recipeTitle = recipe.title,
+            notes = etAttemptNotes?.text.toString(), photoUri = currentPhotoUri?.toString() ?: "",
             dateCompleted = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
         )
         attemptRepo.saveRecipeAttempt(attempt) { success ->
             if (success) {
                 userViewModel.rewardExperience(100)
-                button.text = "Completed"
-                button.setBackgroundColor(ContextCompat.getColor(requireContext(), android.R.color.darker_gray))
-                Toast.makeText(context, "Recipe Completed! +100 XP", Toast.LENGTH_SHORT).show()
+                viewLifecycleOwner.lifecycleScope.launch {
+                    currentAttempt = attemptRepo.getRecipeAttempt(userId, recipe.id.toString())
+                    setCompletedUI(button)
+                    Toast.makeText(context, "Recipe Completed! +100 XP", Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }
 
-    private fun populateIngredientsAndInstructions(recipe: Recipe, view: View) {
-        val ingContainer = view.findViewById<LinearLayout>(R.id.ll_ingredients_container)
-        val insContainer = view.findViewById<LinearLayout>(R.id.ll_instructions_container)
-        recipe.extendedIngredients?.forEach { ingredient ->
-            val item = layoutInflater.inflate(R.layout.item_recipe_ingredient, ingContainer, false)
-            item.findViewById<TextView>(R.id.tv_ingredient_name).text = ingredient.original
-            val btnStatus = item.findViewById<Button>(R.id.btn_ingredient_status)
-            val userHas = pantryViewModel.pantryItems.value?.any { ingredient.name.contains(it.ingredientName, true) || it.ingredientName.contains(ingredient.name, true) } ?: false
-            btnStatus.text = if (userHas) "In Kitchen" else "Need to buy"
-            btnStatus.setBackgroundColor(ContextCompat.getColor(requireContext(), if (userHas) android.R.color.holo_green_light else android.R.color.holo_red_light))
-            ingContainer.addView(item)
-        }
-        recipe.analyzedInstructions?.firstOrNull()?.steps?.forEach { step ->
-            val stepView = layoutInflater.inflate(R.layout.item_instruction_step, insContainer, false)
-            stepView.findViewById<TextView>(R.id.tv_step_number).text = "${step.number}."
-            stepView.findViewById<TextView>(R.id.tv_step_description).text = step.step
-            insContainer.addView(stepView)
+    private fun deleteAttempt(button: Button) {
+        val attemptId = currentAttempt?.id ?: return
+        attemptRepo.deleteRecipeAttempt(attemptId) { success ->
+            if (success) {
+                currentAttempt = null
+                currentPhotoUri = null
+                ivAttemptPreview?.visibility = View.GONE
+                photoPlaceholder?.visibility = View.VISIBLE
+                etAttemptNotes?.setText("")
+                setUncompletedUI(button)
+                Toast.makeText(context, "Attempt deleted", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
