@@ -3,6 +3,7 @@ package com.example.recipematch.ui
 import android.Manifest
 import android.app.Activity
 import android.app.AlertDialog
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -59,12 +60,15 @@ class HomeFragment : Fragment() {
     private val cameraLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
             updatePhotoPreview(currentPhotoUri)
+        } else {
+            // Reset URI if photo wasn't taken to avoid showing partial/broken state
+            currentPhotoUri = null
         }
     }
 
     private val permissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
         if (isGranted) openCamera()
-        else Toast.makeText(context, "Camera permission required", Toast.LENGTH_SHORT).show()
+        else Toast.makeText(context, "Camera permission required to take recipe photos", Toast.LENGTH_SHORT).show()
     }
 
     override fun onCreateView(
@@ -330,10 +334,25 @@ class HomeFragment : Fragment() {
     }
 
     private fun openCamera() {
-        val photoFile = File(requireContext().filesDir, "attempt_${System.currentTimeMillis()}.jpg")
-        currentPhotoUri = FileProvider.getUriForFile(requireContext(), "${requireContext().packageName}.fileprovider", photoFile)
-        val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE).apply { putExtra(MediaStore.EXTRA_OUTPUT, currentPhotoUri) }
-        cameraLauncher.launch(intent)
+        try {
+            val photoFile = File(requireContext().filesDir, "attempt_${System.currentTimeMillis()}.jpg")
+            val authority = "${requireContext().packageName}.fileprovider"
+            currentPhotoUri = FileProvider.getUriForFile(requireContext(), authority, photoFile)
+            
+            val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE).apply { 
+                putExtra(MediaStore.EXTRA_OUTPUT, currentPhotoUri)
+                // Ensure the camera app has permission to write to this URI
+                addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+            }
+            
+            cameraLauncher.launch(intent)
+        } catch (e: ActivityNotFoundException) {
+            Log.e(tag, "No camera app found: ${e.message}")
+            Toast.makeText(context, "No camera app found on this device", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Log.e(tag, "Failed to open camera: ${e.message}")
+            Toast.makeText(context, "Unable to open camera at this time", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun saveNewAttempt(recipe: Recipe, button: Button) {
