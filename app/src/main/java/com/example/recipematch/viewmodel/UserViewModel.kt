@@ -31,17 +31,43 @@ class UserViewModel : ViewModel() {
     private val _passwordUpdateMessage = MutableLiveData<String?>()
     val passwordUpdateMessage: LiveData<String?> = _passwordUpdateMessage
 
-    private fun getBeltTitle(level: Int): String {
-        return when (level) {
-            1 -> "White Belt"
-            2 -> "Yellow Belt"
-            3 -> "Orange Belt"
-            4 -> "Green Belt"
-            5 -> "Blue Belt"
-            6 -> "Purple Belt"
-            7 -> "Red Belt"
-            8 -> "Brown Belt"
-            else -> "Black Belt"
+    companion object {
+        /**
+         * Pure logic for belt titles, moved to companion for testability.
+         */
+        fun getBeltTitle(level: Int): String {
+            return when (level) {
+                1 -> "White Belt"
+                2 -> "Yellow Belt"
+                3 -> "Orange Belt"
+                4 -> "Green Belt"
+                5 -> "Blue Belt"
+                6 -> "Purple Belt"
+                7 -> "Red Belt"
+                8 -> "Brown Belt"
+                else -> "Black Belt"
+            }
+        }
+
+        /**
+         * Pure logic for XP calculation, moved to companion for testability.
+         */
+        fun calculateProgress(user: User, xpAmount: Int): User {
+            var newXp = user.xp + xpAmount
+            var newLevel = user.levelNumber
+            val newRecipesCompleted = user.recipesCompleted + 1
+            
+            while (newXp >= user.totalXpNeeded) {
+                newXp -= user.totalXpNeeded
+                newLevel++
+            }
+
+            return user.copy(
+                xp = newXp,
+                levelNumber = newLevel,
+                levelTitle = getBeltTitle(newLevel),
+                recipesCompleted = newRecipesCompleted
+            )
         }
     }
 
@@ -109,21 +135,7 @@ class UserViewModel : ViewModel() {
         viewModelScope.launch {
             val currentData = userData.value ?: repository.getUserProfile(uid)
             if (currentData != null) {
-                var newXp = currentData.xp + xpAmount
-                var newLevel = currentData.levelNumber
-                val newRecipesCompleted = currentData.recipesCompleted + 1
-                
-                while (newXp >= currentData.totalXpNeeded) {
-                    newXp -= currentData.totalXpNeeded
-                    newLevel++
-                }
-
-                val updatedUser = currentData.copy(
-                    xp = newXp,
-                    levelNumber = newLevel,
-                    levelTitle = getBeltTitle(newLevel),
-                    recipesCompleted = newRecipesCompleted
-                )
+                val updatedUser = calculateProgress(currentData, xpAmount)
                 repository.updateUserProfile(updatedUser)
             }
         }
