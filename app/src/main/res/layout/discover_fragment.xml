@@ -125,6 +125,18 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintTop_toBottomOf="@id/hsv_filters" />
 
+    <TextView
+        android:id="@+id/tv_no_recipes_found"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="No recipes found.\nTry a different search or filter."
+        android:textAlignment="center"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/hsv_filters" />
+
     <ProgressBar
         android:id="@+id/pb_discover_loading"
         android:layout_width="wrap_content"

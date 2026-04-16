@@ -113,12 +113,26 @@
                     android:contentDescription="See all recommended recipes" />
             </RelativeLayout>
 
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rv_recommended"
+            <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="32dp"
-                android:orientation="horizontal" />
+                android:layout_marginBottom="32dp">
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/rv_recommended"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal" />
+
+                <TextView
+                    android:id="@+id/tv_no_recommended"
+                    android:layout_width="match_parent"
+                    android:layout_height="150dp"
+                    android:text="No recommendations yet.\nTry adding more items to your pantry!"
+                    android:gravity="center"
+                    android:background="#F0F0F0"
+                    android:visibility="gone" />
+            </FrameLayout>
 
             <!-- Explore Section -->
             <TextView

@@ -47,6 +47,7 @@ class HomeFragment : Fragment() {
     private lateinit var albumViewModel: AlbumViewModel
     private lateinit var recommendedAdapter: RecipeAdapter
     private lateinit var detailContainer: FrameLayout
+    private lateinit var tvNoRecommended: TextView
 
     private val attemptRepo = RecipeAttemptRepository()
     private val auth = FirebaseAuth.getInstance()
@@ -61,7 +62,6 @@ class HomeFragment : Fragment() {
         if (result.resultCode == Activity.RESULT_OK) {
             updatePhotoPreview(currentPhotoUri)
         } else {
-            // Reset URI if photo wasn't taken to avoid showing partial/broken state
             currentPhotoUri = null
         }
     }
@@ -89,6 +89,7 @@ class HomeFragment : Fragment() {
         val btnUpdatePantry = view.findViewById<Button>(R.id.btn_update_pantry)
         val rvRecommended = view.findViewById<RecyclerView>(R.id.rv_recommended)
         val btnSeeAll = view.findViewById<TextView>(R.id.see_all_recommended)
+        tvNoRecommended = view.findViewById(R.id.tv_no_recommended)
         detailContainer = view.findViewById(R.id.home_recipe_detail_container)
 
         rvRecommended.layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
@@ -127,20 +128,29 @@ class HomeFragment : Fragment() {
     }
 
     private fun sortAndSubmitRecommended() {
-        val recipes = discoverViewModel.homeRecipes.value ?: return
+        val recipes = discoverViewModel.homeRecipes.value ?: emptyList()
         val userIngs = pantryViewModel.pantryItems.value ?: emptyList()
         val userEqs = pantryViewModel.equipment.value ?: emptyList()
-        val sortedList = recipes.sortedByDescending { calculateMatchPercentage(it, userIngs, userEqs) }
-        recommendedAdapter.submitList(sortedList.take(5))
+        
+        if (recipes.isEmpty()) {
+            recommendedAdapter.submitList(emptyList())
+            tvNoRecommended.visibility = View.VISIBLE
+        } else {
+            val sortedList = recipes.sortedByDescending { calculateMatchPercentage(it, userIngs, userEqs) }
+            val topRecipes = sortedList.take(5)
+            recommendedAdapter.submitList(topRecipes)
+            tvNoRecommended.visibility = if (topRecipes.isEmpty()) View.VISIBLE else View.GONE
+        }
     }
 
     private fun updateMatchCount() {
-        val recipes = discoverViewModel.homeRecipes.value ?: return
+        val recipes = discoverViewModel.homeRecipes.value ?: emptyList()
         val userIngs = pantryViewModel.pantryItems.value ?: emptyList()
         val userEqs = pantryViewModel.equipment.value ?: emptyList()
 
+        val tvFound = view?.findViewById<TextView>(R.id.tv_recipes_found)
         if (recipes.isEmpty()) {
-            view?.findViewById<TextView>(R.id.tv_recipes_found)?.text = "Finding recipes you can make..."
+            tvFound?.text = "Finding recipes you can make..."
             return
         }
 
@@ -150,7 +160,6 @@ class HomeFragment : Fragment() {
         val top3Matches = recipeMatchPairs.take(3)
         val count = top3Matches.size
 
-        val tvFound = view?.findViewById<TextView>(R.id.tv_recipes_found)
         tvFound?.text = "We found your top $count matches →"
 
         tvFound?.setOnClickListener {
@@ -233,7 +242,7 @@ class HomeFragment : Fragment() {
 
         btnSaveNotes.setOnClickListener {
             if (currentAttempt != null) {
-                saveNewAttempt(recipe, btnSaveAttempt) // Re-saves with updated notes
+                saveNewAttempt(recipe, btnSaveAttempt)
                 Toast.makeText(context, "Notes updated", Toast.LENGTH_SHORT).show()
             } else {
                 Toast.makeText(context, "Mark as completed to save notes!", Toast.LENGTH_SHORT).show()
@@ -341,7 +350,6 @@ class HomeFragment : Fragment() {
             
             val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE).apply { 
                 putExtra(MediaStore.EXTRA_OUTPUT, currentPhotoUri)
-                // Ensure the camera app has permission to write to this URI
                 addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
             }
             

@@ -31,10 +31,6 @@ class PantryFragment : Fragment() {
         val adapter = PantryPagerAdapter(this)
         viewPager.adapter = adapter
         
-        // FIX for java.lang.IllegalStateException: Fragment no longer exists for key f#0
-        // This prevents the ViewPager2 from trying to restore fragments that were destroyed.
-        viewPager.isSaveEnabled = false
-
         // Connect the TabLayout and ViewPager2
         TabLayoutMediator(tabLayout, viewPager) { tab, position ->
             tab.text = if (position == 0) "Ingredients" else "Equipment"

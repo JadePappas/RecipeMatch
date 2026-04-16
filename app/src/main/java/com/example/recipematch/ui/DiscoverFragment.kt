@@ -49,6 +49,7 @@ class DiscoverFragment : Fragment() {
     private lateinit var progressBar: ProgressBar
     private lateinit var detailContainer: FrameLayout
     private lateinit var rvRecipes: RecyclerView
+    private lateinit var tvNoRecipes: TextView
 
     private val attemptRepo = RecipeAttemptRepository()
     private val auth = FirebaseAuth.getInstance()
@@ -85,6 +86,7 @@ class DiscoverFragment : Fragment() {
         progressBar = view.findViewById(R.id.pb_discover_loading)
         detailContainer = view.findViewById(R.id.recipe_detail_container)
         rvRecipes = view.findViewById(R.id.rv_discover_recipes)
+        tvNoRecipes = view.findViewById(R.id.tv_no_recipes_found)
 
         val gridLayoutManager = GridLayoutManager(requireContext(), 2)
         rvRecipes.layoutManager = gridLayoutManager
@@ -135,8 +137,11 @@ class DiscoverFragment : Fragment() {
             sortAndSubmitRecipes(newRecipesFromViewModel = recipes)
         }
         
-        discoverViewModel.isLoading.observe(viewLifecycleOwner) { 
-            progressBar.visibility = if (it) View.VISIBLE else View.GONE 
+        discoverViewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
+            progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
+            if (!isLoading) {
+                updateEmptyState()
+            }
         }
 
         if (discoverViewModel.recipes.value.isNullOrEmpty()) {
@@ -147,7 +152,7 @@ class DiscoverFragment : Fragment() {
     }
 
     private fun sortAndSubmitRecipes(newRecipesFromViewModel: List<Recipe>? = null, forceFullSort: Boolean = false) {
-        val allRecipes = newRecipesFromViewModel ?: discoverViewModel.recipes.value ?: return
+        val allRecipes = newRecipesFromViewModel ?: discoverViewModel.recipes.value ?: emptyList()
         val userIngs = pantryViewModel.pantryItems.value ?: emptyList()
         val userEqs = pantryViewModel.equipment.value ?: emptyList()
 
@@ -162,6 +167,13 @@ class DiscoverFragment : Fragment() {
             lastProcessedRecipes = updatedList
             recipeAdapter.submitList(updatedList)
         }
+        updateEmptyState()
+    }
+
+    private fun updateEmptyState() {
+        val isLoading = discoverViewModel.isLoading.value ?: false
+        val hasRecipes = recipeAdapter.itemCount > 0
+        tvNoRecipes.visibility = if (!isLoading && !hasRecipes) View.VISIBLE else View.GONE
     }
 
     private fun calculateMatchPercentage(recipe: Recipe, userIngs: List<com.example.recipematch.model.PantryItem>, userEqs: List<com.example.recipematch.model.UserEquipment>): Int {

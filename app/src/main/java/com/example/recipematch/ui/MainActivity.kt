@@ -48,12 +48,26 @@ class MainActivity : AppCompatActivity() {
         }
 
         bottomNavigation.setOnItemSelectedListener { item ->
-            val (fragment, fragmentTag) = when (item.itemId) {
-                R.id.navigation_home -> HomeFragment() to HOME_TAG
-                R.id.navigation_pantry -> PantryFragment() to PANTRY_TAG
-                R.id.navigation_discover -> DiscoverFragment() to DISCOVER_TAG
-                R.id.navigation_profile -> ProfileFragment() to PROFILE_TAG
+            val fragmentTag = when (item.itemId) {
+                R.id.navigation_home -> HOME_TAG
+                R.id.navigation_pantry -> PANTRY_TAG
+                R.id.navigation_discover -> DISCOVER_TAG
+                R.id.navigation_profile -> PROFILE_TAG
                 else -> return@setOnItemSelectedListener false
+            }
+
+            // Check if we are already showing this fragment to avoid redundant replacements and state issues
+            val currentFragment = supportFragmentManager.findFragmentById(R.id.fragment_container)
+            if (currentFragment?.tag == fragmentTag) {
+                return@setOnItemSelectedListener true
+            }
+
+            val fragment = when (fragmentTag) {
+                HOME_TAG -> HomeFragment()
+                PANTRY_TAG -> PantryFragment()
+                DISCOVER_TAG -> DiscoverFragment()
+                PROFILE_TAG -> ProfileFragment()
+                else -> HomeFragment()
             }
             
             supportFragmentManager.beginTransaction()
