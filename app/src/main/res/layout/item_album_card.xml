@@ -17,7 +17,8 @@
             android:layout_width="match_parent"
             android:layout_height="120dp"
             android:scaleType="centerCrop"
-            android:src="@drawable/ic_pantry" />
+            android:src="@drawable/ic_pantry"
+            android:contentDescription="Album cover photo" />
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -32,14 +33,15 @@
                 android:ellipsize="end"
                 android:maxLines="1"
                 android:text="Album Name"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                android:textColor="@android:color/black" />
 
             <TextView
                 android:id="@+id/tv_recipe_count"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="0 recipes"
-                android:textColor="#666666"
+                android:textColor="#333333"
                 android:textSize="12sp" />
         </LinearLayout>
     </LinearLayout>
