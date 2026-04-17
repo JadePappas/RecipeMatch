@@ -37,13 +37,16 @@ class SignupActivity : AppCompatActivity() {
             }
         }
 
-        viewModel.signupResult.observe(this) { success ->
+        viewModel.signupResult.observe(this) { result ->
+            val success = result.first
+            val message = result.second
+            
             if (success) {
-                Toast.makeText(this, "Signup Successful", Toast.LENGTH_SHORT).show()
-                startActivity(Intent(this, MainActivity::class.java))
+                Toast.makeText(this, message ?: "Signup Successful! Check your email.", Toast.LENGTH_LONG).show()
+                startActivity(Intent(this, LoginActivity::class.java))
                 finish()
             } else {
-                Toast.makeText(this, "Signup Failed", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, message ?: "Signup Failed", Toast.LENGTH_SHORT).show()
             }
         }
     }

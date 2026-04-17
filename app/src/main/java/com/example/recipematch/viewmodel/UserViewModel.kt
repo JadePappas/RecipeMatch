@@ -1,5 +1,6 @@
 package com.example.recipematch.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.*
 import com.example.recipematch.model.User
 import com.example.recipematch.repository.UserRepository
@@ -22,14 +23,17 @@ class UserViewModel(private val savedStateHandle: SavedStateHandle) : ViewModel(
     private val _updateResult = MutableLiveData<Boolean>()
     val updateResult: LiveData<Boolean> = _updateResult
 
-    private val _loginResult = MutableLiveData<Boolean>()
-    val loginResult: LiveData<Boolean> = _loginResult
+    private val _loginResult = MutableLiveData<Pair<Boolean, String?>>()
+    val loginResult: LiveData<Pair<Boolean, String?>> = _loginResult
 
-    private val _signupResult = MutableLiveData<Boolean>()
-    val signupResult: LiveData<Boolean> = _signupResult
+    private val _signupResult = MutableLiveData<Pair<Boolean, String?>>()
+    val signupResult: LiveData<Pair<Boolean, String?>> = _signupResult
 
     private val _passwordUpdateMessage = MutableLiveData<String?>()
     val passwordUpdateMessage: LiveData<String?> = _passwordUpdateMessage
+
+    private val _passwordResetResult = MutableLiveData<Pair<Boolean, String?>>()
+    val passwordResetResult: LiveData<Pair<Boolean, String?>> = _passwordResetResult
 
     companion object {
         fun getBeltTitle(level: Int): String {
@@ -69,7 +73,15 @@ class UserViewModel(private val savedStateHandle: SavedStateHandle) : ViewModel(
         auth.createUserWithEmailAndPassword(email, password)
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
-                    val uid = auth.currentUser?.uid ?: ""
+                    val firebaseUser = auth.currentUser
+                    firebaseUser?.sendEmailVerification()
+                        ?.addOnCompleteListener { verificationTask ->
+                            if (verificationTask.isSuccessful) {
+                                Log.d("UserViewModel", "Verification email sent to $email")
+                            }
+                        }
+                    
+                    val uid = firebaseUser?.uid ?: ""
                     val newUser = User(
                         userId = uid, 
                         username = username, 
@@ -79,10 +91,14 @@ class UserViewModel(private val savedStateHandle: SavedStateHandle) : ViewModel(
                     )
                     viewModelScope.launch {
                         val success = repository.createUserProfile(newUser)
-                        _signupResult.postValue(success)
+                        if (success) {
+                            _signupResult.postValue(Pair(true, "Please check your email for verification link."))
+                        } else {
+                            _signupResult.postValue(Pair(false, "Profile creation failed."))
+                        }
                     }
                 } else {
-                    _signupResult.postValue(false)
+                    _signupResult.postValue(Pair(false, task.exception?.localizedMessage ?: "Signup Failed"))
                 }
             }
     }
@@ -90,11 +106,39 @@ class UserViewModel(private val savedStateHandle: SavedStateHandle) : ViewModel(
     fun signIn(email: String, password: String) {
         auth.signInWithEmailAndPassword(email, password)
             .addOnCompleteListener { task ->
-                _loginResult.postValue(task.isSuccessful)
+                if (task.isSuccessful) {
+                    val user = auth.currentUser
+                    if (user != null && user.isEmailVerified) {
+                        _loginResult.postValue(Pair(true, null))
+                    } else {
+                        auth.signOut()
+                        _loginResult.postValue(Pair(false, "Please verify your email before logging in."))
+                    }
+                } else {
+                    _loginResult.postValue(Pair(false, task.exception?.localizedMessage ?: "Login Failed"))
+                }
             }
     }
 
-    fun isUserLoggedIn(): Boolean = auth.currentUser != null
+    fun resetPassword(email: String) {
+        Log.d("UserViewModel", "Attempting password reset for: $email")
+        auth.sendPasswordResetEmail(email)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    Log.d("UserViewModel", "Reset email successfully sent to $email")
+                    _passwordResetResult.postValue(Pair(true, "Reset link sent to $email. Please check your inbox and spam."))
+                } else {
+                    val error = task.exception?.localizedMessage ?: "Failed to send reset email."
+                    Log.e("UserViewModel", "Reset failed: $error")
+                    _passwordResetResult.postValue(Pair(false, error))
+                }
+            }
+    }
+
+    fun isUserLoggedIn(): Boolean {
+        val user = auth.currentUser
+        return user != null && user.isEmailVerified
+    }
 
     fun signOut() {
         auth.signOut()
