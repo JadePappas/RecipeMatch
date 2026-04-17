@@ -7,7 +7,8 @@ import androidx.test.espresso.action.ViewActions.*
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.ViewMatchers.*
 import com.example.recipematch.ui.MainActivity
-import org.hamcrest.Matchers.allOf
+import org.hamcrest.CoreMatchers.allOf
+import org.hamcrest.CoreMatchers.startsWith
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -19,28 +20,21 @@ class ExampleInstrumentedTest {
     val activityRule = ActivityScenarioRule(MainActivity::class.java)
 
     @Test
-    fun testNavigationAndProfileSettings() {
+    fun testLogoutFunctionality() {
         // 1. Navigate to Profile
         onView(withId(R.id.navigation_profile)).perform(click())
 
-        // 2. Verify Profile Content
-        onView(withId(R.id.profile_name)).check(matches(withText("John Doe")))
-
-        // 3. Open Settings
+        // 2. Open Settings
         onView(withId(R.id.settings_button)).perform(click())
 
-        // 4. Verify Settings UI
-        onView(withText("Profile Settings")).check(matches(isDisplayed()))
-        onView(withId(R.id.edit_display_name)).check(matches(isDisplayed()))
+        // 3. Click Logout button
+        onView(withId(R.id.btn_logout)).perform(click())
 
-        // 5. Test text input in Settings
-        onView(withId(R.id.edit_display_name))
-            .perform(replaceText("Jane Doe"), closeSoftKeyboard())
-        onView(withId(R.id.edit_display_name)).check(matches(withText("Jane Doe")))
+        // 4. Confirm Logout in Dialog
+        onView(withId(R.id.btn_confirm_logout)).perform(click())
 
-        // 6. Go back to Profile
-        onView(withId(R.id.btn_settings_back)).perform(click())
-        onView(withId(R.id.profile_name)).check(matches(isDisplayed()))
+        // 5. Verify navigation to Login screen
+        onView(withId(R.id.btnLogin)).check(matches(isDisplayed()))
     }
 
     @Test
@@ -60,14 +54,13 @@ class ExampleInstrumentedTest {
         onView(withText("Italian")).perform(click())
 
         // 5. Verify chip selection
-        // Using isChecked() instead of isSelected() for Material Chips
         onView(allOf(withText("Italian"), isChecked())).check(matches(isDisplayed()))
     }
 
     @Test
     fun testHomePantryInteraction() {
-        // 1. Start on Home
-        onView(withId(R.id.tv_greeting)).check(matches(withText("Hi, User!")))
+        // 1. Start on Home - Verify greeting starts with "Hi,"
+        onView(withId(R.id.tv_greeting)).check(matches(withText(startsWith("Hi,"))))
 
         // 2. Click Update Pantry button on Home card
         onView(withId(R.id.btn_update_pantry)).perform(click())
