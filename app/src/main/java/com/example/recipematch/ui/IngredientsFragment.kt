@@ -16,6 +16,8 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.recipematch.R
 import com.example.recipematch.model.PantryItem
 import com.example.recipematch.viewmodel.PantryViewModel
+import com.google.android.material.chip.Chip
+import com.google.android.material.chip.ChipGroup
 
 class IngredientsFragment : Fragment() {
 
@@ -24,7 +26,6 @@ class IngredientsFragment : Fragment() {
     private lateinit var addItemsAdapter: PantryAddAdapter
     
     private lateinit var tvInStockTitle: TextView
-    private lateinit var tvAddItemsTitle: TextView
     private lateinit var rvInStock: RecyclerView
     private var isStockExpanded = false
 
@@ -34,6 +35,13 @@ class IngredientsFragment : Fragment() {
         "Whole Milk", "Large Eggs", "Unsalted Butter", "Cheddar Cheese", "Russet Potato", 
         "Carrot", "Lemon", "Fresh Ginger", "Cilantro", "Soy Sauce", "Honey", "Red Pepper Flakes",
         "Greek Yogurt", "Spinach", "Bell Pepper", "Cucumber", "Bread", "Chicken Stock"
+    )
+
+    private val ingredientCategories = mapOf(
+        "Vegan" to listOf("Pasta", "Rice", "Tomato", "Yellow Onion", "Garlic", "Salt", "Black Pepper", "Olive Oil", "Russet Potato", "Carrot", "Lemon", "Fresh Ginger", "Cilantro", "Soy Sauce", "Red Pepper Flakes", "Spinach", "Bell Pepper", "Cucumber", "Bread"),
+        "Protein" to listOf("Chicken Breast", "Ground Beef", "Large Eggs", "Cheddar Cheese", "Greek Yogurt"),
+        "Dairy" to listOf("Whole Milk", "Unsalted Butter", "Cheddar Cheese", "Greek Yogurt"),
+        "Spice" to listOf("Salt", "Black Pepper", "Garlic", "Fresh Ginger", "Red Pepper Flakes")
     )
 
     private val ingredientUnits = mapOf(
@@ -52,10 +60,11 @@ class IngredientsFragment : Fragment() {
         viewModel = ViewModelProvider(requireActivity()).get(PantryViewModel::class.java)
 
         tvInStockTitle = view.findViewById(R.id.tv_in_stock_title)
-        tvAddItemsTitle = view.findViewById(R.id.tv_add_items_title)
         rvInStock = view.findViewById(R.id.rv_in_stock)
         val rvAddItems = view.findViewById<RecyclerView>(R.id.rv_add_items)
+        val chipGroup = view.findViewById<ChipGroup>(R.id.chip_group_filters)
         val btnViewAllStock = view.findViewById<Button>(R.id.btn_view_all_stock)
+        val searchBar = view.findViewById<EditText>(R.id.search_ingredients)
 
         inStockAdapter = PantryInStockAdapter { item -> showEditDialog(item) }
         rvInStock.adapter = inStockAdapter
@@ -72,14 +81,11 @@ class IngredientsFragment : Fragment() {
             if (results.isNotEmpty()) {
                 val names = results.map { it.name.replaceFirstChar { char -> char.uppercase() } }
                 addItemsAdapter.updateItems(names)
-                tvAddItemsTitle.text = "Search Results (${names.size})"
             } else {
-                addItemsAdapter.updateItems(commonIngredients)
-                tvAddItemsTitle.text = "Common Ingredients"
+                filterIngredients(searchBar.text.toString(), chipGroup)
             }
         }
 
-        val searchBar = view.findViewById<EditText>(R.id.search_ingredients)
         searchBar.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
@@ -87,12 +93,15 @@ class IngredientsFragment : Fragment() {
                 if (query.length > 2) {
                     viewModel.searchIngredients(query)
                 } else if (query.isEmpty()) {
-                    addItemsAdapter.updateItems(commonIngredients)
-                    tvAddItemsTitle.text = "Common Ingredients"
+                    filterIngredients("", chipGroup)
                 }
             }
             override fun afterTextChanged(s: Editable?) {}
         })
+
+        chipGroup.setOnCheckedStateChangeListener { group, checkedIds ->
+            filterIngredients(searchBar.text.toString(), group)
+        }
 
         btnViewAllStock.setOnClickListener {
             isStockExpanded = !isStockExpanded
@@ -106,6 +115,24 @@ class IngredientsFragment : Fragment() {
         }
 
         return view
+    }
+
+    private fun filterIngredients(query: String, chipGroup: ChipGroup) {
+        val checkedId = chipGroup.checkedChipId
+        val category = if (checkedId != View.NO_ID) {
+            chipGroup.findViewById<Chip>(checkedId).text.toString()
+        } else "All"
+
+        var filtered = if (category == "All") {
+            commonIngredients
+        } else {
+            ingredientCategories[category] ?: commonIngredients
+        }
+
+        if (query.isNotEmpty()) {
+            filtered = filtered.filter { it.contains(query, ignoreCase = true) }
+        }
+        addItemsAdapter.updateItems(filtered)
     }
 
     private fun showEditDialog(item: PantryItem) {

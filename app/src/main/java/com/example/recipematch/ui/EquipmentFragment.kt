@@ -50,6 +50,7 @@ class EquipmentFragment : Fragment() {
         rvInKitchen = view.findViewById(R.id.rv_in_kitchen)
         val rvAddEquipment = view.findViewById<RecyclerView>(R.id.rv_add_equipment)
         val btnViewAllKitchen = view.findViewById<Button>(R.id.btn_view_all_kitchen)
+        val searchBar = view.findViewById<EditText>(R.id.search_equipment)
 
         inKitchenAdapter = EquipmentInStockAdapter { item -> showEditDialog(item) }
         rvInKitchen.adapter = inKitchenAdapter
@@ -63,27 +64,32 @@ class EquipmentFragment : Fragment() {
             tvInKitchenTitle.text = "In Kitchen (${items.size})"
         }
 
+        // Observe search results from Spoonacular API
         viewModel.equipmentSearchResults.observe(viewLifecycleOwner) { results ->
             if (results.isNotEmpty()) {
                 val names = results.map { it.name.replaceFirstChar { char -> char.uppercase() } }
                 addEquipmentAdapter.updateItems(names)
                 tvAddItemsTitle.text = "Search Results (${names.size})"
             } else {
-                addEquipmentAdapter.updateItems(commonEquipment)
-                tvAddItemsTitle.text = "Common Equipment"
+                // If API returns nothing, filter the common equipment list locally
+                val query = searchBar.text.toString()
+                if (query.isEmpty()) {
+                    addEquipmentAdapter.updateItems(commonEquipment)
+                    tvAddItemsTitle.text = "Common Equipment"
+                } else {
+                    filterEquipmentLocally(query)
+                }
             }
         }
 
-        val searchBar = view.findViewById<EditText>(R.id.search_equipment)
         searchBar.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
                 val query = s.toString()
                 if (query.length > 2) {
                     viewModel.searchEquipment(query)
-                } else if (query.isEmpty()) {
-                    addEquipmentAdapter.updateItems(commonEquipment)
-                    tvAddItemsTitle.text = "Common Equipment"
+                } else {
+                    filterEquipmentLocally(query)
                 }
             }
             override fun afterTextChanged(s: Editable?) {}
@@ -101,6 +107,17 @@ class EquipmentFragment : Fragment() {
         }
 
         return view
+    }
+
+    private fun filterEquipmentLocally(query: String) {
+        if (query.isEmpty()) {
+            addEquipmentAdapter.updateItems(commonEquipment)
+            tvAddItemsTitle.text = "Common Equipment"
+        } else {
+            val filtered = commonEquipment.filter { it.contains(query, ignoreCase = true) }
+            addEquipmentAdapter.updateItems(filtered)
+            tvAddItemsTitle.text = "Matching Equipment (${filtered.size})"
+        }
     }
 
     private fun showEditDialog(item: UserEquipment) {
