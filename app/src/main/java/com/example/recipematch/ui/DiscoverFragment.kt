@@ -8,6 +8,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -139,9 +140,7 @@ class DiscoverFragment : Fragment() {
         
         discoverViewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
             progressBar.visibility = if (isLoading) View.VISIBLE else View.GONE
-            if (!isLoading) {
-                updateEmptyState()
-            }
+            updateEmptyState()
         }
 
         if (discoverViewModel.recipes.value.isNullOrEmpty()) {
@@ -172,8 +171,11 @@ class DiscoverFragment : Fragment() {
 
     private fun updateEmptyState() {
         val isLoading = discoverViewModel.isLoading.value ?: false
-        val hasRecipes = recipeAdapter.itemCount > 0
-        tvNoRecipes.visibility = if (!isLoading && !hasRecipes) View.VISIBLE else View.GONE
+        val recipes = discoverViewModel.recipes.value
+        
+        // Only show "No Recipes" if we aren't loading, and we've actually received a list, and it's empty.
+        val showNoRecipes = !isLoading && recipes != null && recipes.isEmpty()
+        tvNoRecipes.visibility = if (showNoRecipes) View.VISIBLE else View.GONE
     }
 
     private fun calculateMatchPercentage(recipe: Recipe, userIngs: List<com.example.recipematch.model.PantryItem>, userEqs: List<com.example.recipematch.model.UserEquipment>): Int {
@@ -375,7 +377,7 @@ class DiscoverFragment : Fragment() {
             val item = layoutInflater.inflate(R.layout.item_recipe_ingredient, eqContainer, false)
             item.findViewById<TextView>(R.id.tv_ingredient_name).text = eq.name.replaceFirstChar { it.uppercase() }
             val btnStatus = item.findViewById<Button>(R.id.btn_ingredient_status)
-            val userHas = pantryViewModel.equipment.value?.any { eq.name.contains(it.equipmentName, true) || it.equipmentName.contains(eq.name, true) } ?: false
+            val userHas = pantryViewModel.equipment.value?.any { eq.name.contains(it.equipmentName, true) || eq.name.contains(it.equipmentName, true) } ?: false
             btnStatus.text = if (userHas) "In Kitchen" else "Missing"
             btnStatus.setBackgroundColor(ContextCompat.getColor(requireContext(), if (userHas) android.R.color.holo_green_light else android.R.color.holo_red_light))
             eqContainer.addView(item)
